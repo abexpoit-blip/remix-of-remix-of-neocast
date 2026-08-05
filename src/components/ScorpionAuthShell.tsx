@@ -35,7 +35,7 @@ function NetworkTile({ name, Mark }: { name: string; Mark: (p: { className?: str
 }
 
 
-/** Premium prepaid card mock used in the brand panel. */
+/** Premium card mock used in the brand panel. */
 function CardMock({
   label,
   value,
@@ -54,7 +54,7 @@ function CardMock({
     >
       <div className="flex items-start justify-between">
         <CreditCard className="h-5 w-5 text-white/85" />
-        <span className="text-[9px] uppercase tracking-[0.28em] text-white/70">Prepaid card</span>
+        <span className="text-[9px] uppercase tracking-[0.28em] text-white/70">Premium card</span>
       </div>
       <div className="mt-7 text-[11px] uppercase tracking-[0.22em] text-white/70">{label}</div>
       <div
@@ -127,7 +127,7 @@ export function ScorpionAuthShell({
           <div className="inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/[0.05] px-3 py-1.5 backdrop-blur-md">
             <span className="h-1.5 w-1.5 rounded-full bg-[var(--nc-accent-soft)] shadow-[0_0_10px_var(--nc-accent-soft)]" />
             <span className="text-[10px] uppercase tracking-[0.3em] text-white/70">
-              Premium prepaid card marketplace
+              Premium card marketplace
             </span>
           </div>
 
@@ -135,7 +135,7 @@ export function ScorpionAuthShell({
             className="mt-6 text-[46px] leading-[1.05] font-extrabold tracking-[-0.03em]"
             style={{ fontFamily: '"Space Grotesk", "DM Sans", sans-serif' }}
           >
-            Buy prepaid cards
+            Buy cards
             <br />
             <span
               className="bg-clip-text text-transparent"
