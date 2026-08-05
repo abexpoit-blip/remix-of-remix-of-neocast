@@ -64,6 +64,7 @@ const Index = () => {
 
   return (
     <AppShell>
+      <AnnouncementTicker announcements={anns} loading={loading} />
       <Seo title="NeoCast — Home" description="Buyer dashboard, live stock feed and announcements." path="/" />
 
       {/* HERO */}
