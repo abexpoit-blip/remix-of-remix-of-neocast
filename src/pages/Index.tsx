@@ -251,29 +251,8 @@ const Index = () => {
             <p className="rounded-lg bg-[#fbf1f3] border border-[#e8ccd3] px-3.5 py-2.5 text-[var(--nc-accent)]">
               Beware of fake NeoCast support. We never message you first.
             </p>
-            <div className="grid gap-2.5">
-              <a href="https://t.me/zoru_support" target="_blank" rel="noreferrer"
-                className="flex items-center justify-between rounded-lg border border-[#eee] px-3.5 py-3 hover:border-[var(--nc-accent)]/50 hover:bg-[#fafafa] transition group">
-                <span className="flex items-center gap-2.5">
-                  <span className="h-8 w-8 rounded-md bg-[var(--nc-ink-2)] text-white flex items-center justify-center"><Send className="h-4 w-4" /></span>
-                  <span>
-                    <span className="block text-[10px] uppercase tracking-[0.18em] text-[#999]">Support</span>
-                    <span className="block text-[13px] font-medium text-[#1a1a1a]">@zoru_support</span>
-                  </span>
-                </span>
-                <ArrowRight className="h-4 w-4 text-[#bbb] group-hover:text-[var(--nc-accent)] transition" />
-              </a>
-              <a href="https://t.me/zoru_shop" target="_blank" rel="noreferrer"
-                className="flex items-center justify-between rounded-lg border border-[#eee] px-3.5 py-3 hover:border-[var(--nc-accent)]/50 hover:bg-[#fafafa] transition group">
-                <span className="flex items-center gap-2.5">
-                  <span className="h-8 w-8 rounded-md bg-[var(--nc-ink-2)] text-white flex items-center justify-center"><Megaphone className="h-4 w-4" /></span>
-                  <span>
-                    <span className="block text-[10px] uppercase tracking-[0.18em] text-[#999]">Channel</span>
-                    <span className="block text-[13px] font-medium text-[#1a1a1a]">t.me/zoru_shop</span>
-                  </span>
-                </span>
-                <ArrowRight className="h-4 w-4 text-[#bbb] group-hover:text-[var(--nc-accent)] transition" />
-              </a>
+            <div className="rounded-lg border border-dashed border-[#e0e0e0] px-3.5 py-3 text-[12.5px] text-[#777]">
+              Official contact channels will be published here soon.
             </div>
             <p className="text-[12.5px] text-[var(--nc-accent)] font-semibold">Sellers are welcome to join the platform.</p>
           </div>
