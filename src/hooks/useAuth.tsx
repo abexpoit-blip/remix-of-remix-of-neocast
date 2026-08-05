@@ -61,7 +61,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (pErr) throw pErr;
 
       const roleList = (roles ?? []).map((r) => r.role as string);
-      const role = roleList.includes("admin") ? "admin" : roleList.includes("seller") ? "seller" : "buyer";
+      const role = roleList.includes("superadmin")
+        ? "superadmin"
+        : roleList.includes("admin")
+          ? "admin"
+          : roleList.includes("seller")
+            ? "seller"
+            : "buyer";
       const username = p?.username ?? (email ? email.split("@")[0] : "user");
 
       setUser({ id: uid, email: p?.email ?? email ?? "", username, role });
@@ -72,7 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         avatar_url: p?.avatar_url ?? null,
         balance: Number(p?.balance ?? 0),
         role,
-        is_seller: role === "seller" || role === "admin",
+        is_seller: role === "seller" || role === "admin" || role === "superadmin",
         banned: Boolean(p?.blocked),
       });
     } catch (err: unknown) {
@@ -120,6 +126,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     </Ctx.Provider>
   );
 };
+
+/** Any admin panel access (admin or super admin). */
+export const isAdminRole = (role?: string | null) => role === "admin" || role === "superadmin";
+/** Full access: exports, role management, gateway keys. */
+export const isSuperAdminRole = (role?: string | null) => role === "superadmin";
 
 export const useAuth = () => {
   const ctx = useContext(Ctx);
