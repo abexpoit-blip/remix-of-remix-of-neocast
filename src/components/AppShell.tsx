@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link, Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, ClipboardList, LogOut, Menu, Plus, ShieldCheck, Wallet, X } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, isAdminRole, isSuperAdminRole } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
@@ -266,8 +266,20 @@ export const AdminRoute = ({ children }: { children: ReactNode }) => {
     return <NeoCastLoader />;
   }
   if (!user) return <Navigate to="/crzr-x9k2-panel" replace state={{ from: loc }} />;
-  if (profile?.role !== "admin") {
+  if (!isAdminRole(profile?.role)) {
     return <Navigate to="/crzr-x9k2-panel" replace state={{ from: loc, reason: "not-admin" }} />;
+  }
+  return <>{children}</>;
+};
+
+/** Super-admin-only area (card exports, role management). */
+export const SuperAdminRoute = ({ children }: { children: ReactNode }) => {
+  const { profile, loading, user, profileError } = useAuth();
+  const loc = useLocation();
+  if (loading && !profileError) return <NeoCastLoader />;
+  if (!user) return <Navigate to="/crzr-x9k2-panel" replace state={{ from: loc }} />;
+  if (!isSuperAdminRole(profile?.role)) {
+    return <Navigate to="/admin" replace state={{ from: loc, reason: "not-superadmin" }} />;
   }
   return <>{children}</>;
 };

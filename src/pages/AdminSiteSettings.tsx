@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { Loader2, Save, Globe, Megaphone, Palette, Coins, Trash2, Plus } from "lucide-react";
+import { Loader2, Save, Globe, Megaphone, Palette, Coins, Trash2, Plus, Send } from "lucide-react";
 import { DEFAULT_SETTINGS, refreshSiteSettings, SiteSettings } from "@/hooks/useSiteSettings";
 
 const AdminSiteSettings = () => {
@@ -94,6 +94,18 @@ const AdminSiteSettings = () => {
               <Plus className="h-3.5 w-3.5" /> Add ticker item
             </button>
           </div>
+        </Section>
+
+        <Section icon={Send} title="Telegram & support">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Support Telegram ID / handle">
+              <Input value={s.support_telegram} onChange={(e) => set("support_telegram", e.target.value)} placeholder="@support_handle" />
+            </Field>
+            <Field label="Announcement channel">
+              <Input value={s.support_telegram_channel} onChange={(e) => set("support_telegram_channel", e.target.value)} placeholder="@channel_handle" />
+            </Field>
+          </div>
+          <p className="text-xs text-muted-foreground mt-2">Shown to buyers as the official contact. Update it any time — changes apply instantly across the site.</p>
         </Section>
 
         <Section icon={Coins} title="Pricing & commission">

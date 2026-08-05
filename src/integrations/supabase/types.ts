@@ -347,6 +347,7 @@ export type Database = {
         Row: {
           active: boolean
           base: string | null
+          base_date: string
           bin: string | null
           brand: string | null
           category_id: string | null
@@ -379,6 +380,7 @@ export type Database = {
         Insert: {
           active?: boolean
           base?: string | null
+          base_date?: string
           bin?: string | null
           brand?: string | null
           category_id?: string | null
@@ -411,6 +413,7 @@ export type Database = {
         Update: {
           active?: boolean
           base?: string | null
+          base_date?: string
           bin?: string | null
           brand?: string | null
           category_id?: string | null
@@ -554,6 +557,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_superadmin: { Args: { _user_id: string }; Returns: boolean }
       purchase_product: {
         Args: { _product_id: string; _quantity?: number }
         Returns: string
@@ -569,7 +573,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "buyer" | "seller" | "admin"
+      app_role: "buyer" | "seller" | "admin" | "superadmin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -697,7 +701,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["buyer", "seller", "admin"],
+      app_role: ["buyer", "seller", "admin", "superadmin"],
     },
   },
 } as const

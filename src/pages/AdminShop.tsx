@@ -5,7 +5,7 @@ import { Loader2, Plus, Trash2, Edit2, Save, X, Layers, CreditCard, RefreshCw } 
 import {
   listCategories, listProducts, adminSaveProduct, adminDeleteProduct,
   adminSaveCategory, adminDeleteCategory, adminAddKeys, adminSyncStock,
-  parseBulkCards, adminBulkCreateCards,
+  parseBulkCards, adminBulkCreateCards, todayISO,
   slugify, type Category, type Product, type ProductInput, type DeliveryType,
 } from "@/lib/store";
 import { BrandLogo, detectBrandFromBin, COUNTRIES } from "@/lib/brands";
@@ -31,6 +31,7 @@ const emptyForm = (): ProductInput & { keys: string } => ({
   brand: "",
   country: "",
   base: "",
+  base_date: todayISO(),
   keys: "",
 });
 
@@ -51,6 +52,8 @@ const AdminShop = () => {
   const [binLoading, setBinLoading] = useState(false);
   const [bulkText, setBulkText] = useState("");
   const [bulkCat, setBulkCat] = useState<string>("");
+  const [bulkBaseDate, setBulkBaseDate] = useState<string>(todayISO());
+  const [bulkStats, setBulkStats] = useState<{ n: number; date: string; skipped: number } | null>(null);
   const [bulkBusy, setBulkBusy] = useState(false);
 
   const bulkPreview = useMemo(() => parseBulkCards(bulkText), [bulkText]);
@@ -60,8 +63,9 @@ const AdminShop = () => {
     if (!rows.length) { toast.error("No valid rows"); return; }
     setBulkBusy(true);
     try {
-      const n = await adminBulkCreateCards(rows, bulkCat || null);
-      toast.success(`Items uploaded: ${n}${errors.length ? ` · skipped: ${errors.length}` : ""}`);
+      const n = await adminBulkCreateCards(rows, bulkCat || null, { baseDate: bulkBaseDate });
+      setBulkStats({ n, date: bulkBaseDate, skipped: errors.length });
+      toast.success(`Items uploaded: ${n}${errors.length ? ` · skipped: ${errors.length}` : ""} · base date ${bulkBaseDate}`);
       setBulkText("");
       void load();
     } catch (e) {
@@ -114,6 +118,7 @@ const AdminShop = () => {
       brand: p.brand ?? "",
       country: p.country ?? "",
       base: p.base ?? "",
+      base_date: p.base_date ?? todayISO(),
       keys: "",
     });
     setTab("cards");
@@ -134,6 +139,7 @@ const AdminShop = () => {
         brand: rest.brand?.trim() || (rest.bin ? detectBrandFromBin(rest.bin) : null),
         country: rest.country?.trim().toUpperCase() || null,
         base: rest.base?.trim() || null,
+        base_date: rest.base_date || todayISO(),
       };
       const id = await adminSaveProduct(payload);
       const lines = keys.split("\n").map((l) => l.trim()).filter(Boolean);
@@ -298,6 +304,10 @@ const AdminShop = () => {
                 <input className={inputCls} value={form.base ?? ""} onChange={(e) => setForm({ ...form, base: e.target.value })} placeholder="BASE: PREMIUM-WM-2026 / 98% valid" />
               </div>
               <div className="space-y-1.5">
+                <div className={labelCls}>Base date</div>
+                <input type="date" className={inputCls} value={form.base_date ?? todayISO()} onChange={(e) => setForm({ ...form, base_date: e.target.value })} />
+              </div>
+              <div className="space-y-1.5">
                 <div className={labelCls}>Delivery type</div>
                 <select className={inputCls} value={form.delivery_type} onChange={(e) => setForm({ ...form, delivery_type: e.target.value as DeliveryType })}>
                   <option value="key">Cards from stock (key)</option>
@@ -369,6 +379,12 @@ const AdminShop = () => {
                 <option value="">Uncategorized</option>
                 {cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
+              <div className="flex items-center gap-2">
+                <span className={labelCls}>Base date</span>
+                <input type="date" className={`${inputCls} max-w-[170px]`} value={bulkBaseDate} onChange={(e) => setBulkBaseDate(e.target.value)} />
+                <button type="button" onClick={() => setBulkBaseDate(todayISO(-1))} className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground">Yesterday</button>
+                <button type="button" onClick={() => setBulkBaseDate(todayISO())} className="text-[10px] uppercase tracking-wider text-muted-foreground hover:text-foreground">Today</button>
+              </div>
               <span className="text-xs text-muted-foreground">
                 Ready to upload: <b className="text-foreground">{bulkPreview.rows.length}</b>
                 {bulkPreview.errors.length > 0 && <span className="text-destructive"> · errors: {bulkPreview.errors.length}</span>}
@@ -477,9 +493,9 @@ const AdminShop = () => {
           <div className="glass rounded-2xl p-5 space-y-3">
             <h2 className="text-sm font-semibold">{catForm.id ? "Edit category" : "New category"}</h2>
             <div className="space-y-1.5"><div className={labelCls}>Name</div>
-              <input className={inputCls} value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} placeholder="Prepaid Cards" /></div>
+              <input className={inputCls} value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value })} placeholder="Cards" /></div>
             <div className="space-y-1.5"><div className={labelCls}>Slug</div>
-              <input className={inputCls} value={catForm.slug} onChange={(e) => setCatForm({ ...catForm, slug: e.target.value })} placeholder="prepaid-cards" /></div>
+              <input className={inputCls} value={catForm.slug} onChange={(e) => setCatForm({ ...catForm, slug: e.target.value })} placeholder="cards" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5"><div className={labelCls}>Icon (emoji)</div>
                 <input className={inputCls} value={catForm.icon} onChange={(e) => setCatForm({ ...catForm, icon: e.target.value })} placeholder="💳" /></div>

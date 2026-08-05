@@ -5,7 +5,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
-import { ProtectedRoute, AdminRoute } from "@/components/AppShell";
+import { ProtectedRoute, AdminRoute, SuperAdminRoute } from "@/components/AppShell";
 import ScrollToTop from "@/components/ScrollToTop";
 import TopProgress from "@/components/TopProgress";
 
@@ -31,6 +31,7 @@ const AdminPaymentGateway = lazy(() => import("./pages/AdminPaymentGateway"));
 const AdminPayments = lazy(() => import("./pages/AdminPayments"));
 const AdminCategories = lazy(() => import("./pages/AdminCategories"));
 const AdminShop = lazy(() => import("./pages/AdminShop"));
+const AdminExport = lazy(() => import("./pages/AdminExport"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -80,6 +81,7 @@ const App = () => (
 
             <Route path="/admin/categories" element={<AdminRoute><AdminCategories /></AdminRoute>} />
             <Route path="/admin/shop" element={<AdminRoute><AdminShop /></AdminRoute>} />
+            <Route path="/admin/export" element={<SuperAdminRoute><AdminExport /></SuperAdminRoute>} />
 
             {/* Buyer routes — Scorpion-style: only 5 nav pages */}
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />

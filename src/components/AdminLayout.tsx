@@ -1,9 +1,10 @@
 import { ReactNode, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { NavLink, useLocation } from "react-router-dom";
-import { Shield, LayoutDashboard, CreditCard, KeyRound, Settings as SettingsIcon, Menu, X, Banknote, DollarSign, LayoutGrid } from "lucide-react";
+import { Shield, ShieldCheck, LayoutDashboard, CreditCard, KeyRound, Settings as SettingsIcon, Menu, X, Banknote, DollarSign, LayoutGrid, Download } from "lucide-react";
+import { useAuth, isSuperAdminRole } from "@/hooks/useAuth";
 
-interface Item { to: string; label: string; icon: React.ComponentType<{ className?: string }>; }
+interface Item { to: string; label: string; icon: React.ComponentType<{ className?: string }>; superOnly?: boolean; }
 
 const items: Item[] = [
   { to: "/admin", label: "Overview", icon: LayoutDashboard },
@@ -11,23 +12,31 @@ const items: Item[] = [
   { to: "/admin/categories", label: "Categories", icon: LayoutGrid },
   { to: "/admin/cards", label: "Card moderation", icon: CreditCard },
   { to: "/admin/payments", label: "Payments · Deposits", icon: DollarSign },
+  { to: "/admin/export", label: "Card export", icon: Download, superOnly: true },
 
-  { to: "/admin/payment-gateway", label: "Plisio Payment Gateway", icon: Banknote },
+  { to: "/admin/payment-gateway", label: "Plisio Payment Gateway", icon: Banknote, superOnly: true },
   { to: "/admin/site", label: "Site settings", icon: SettingsIcon },
   { to: "/admin/settings", label: "Credentials", icon: KeyRound },
 ];
 
 
-const SidebarContent = ({ pathname, onNavigate }: { pathname: string; onNavigate?: () => void }) => (
+const SidebarContent = ({ pathname, onNavigate, isSuper }: { pathname: string; onNavigate?: () => void; isSuper: boolean }) => (
   <>
     <div className="flex items-center gap-3 mb-6 px-2">
       <div className="h-10 w-10 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center">
-        <Shield className="h-5 w-5 text-primary-glow" />
+        {isSuper ? <ShieldCheck className="h-5 w-5 text-primary-glow" /> : <Shield className="h-5 w-5 text-primary-glow" />}
       </div>
-      <span className="font-display font-bold tracking-[0.15em] text-primary-glow text-base uppercase">Admin</span>
+      <div className="leading-tight">
+        <span className="block font-display font-bold tracking-[0.15em] text-primary-glow text-base uppercase">
+          {isSuper ? "Super Admin" : "Admin"}
+        </span>
+        <span className="text-[10px] uppercase tracking-widest text-muted-foreground">
+          {isSuper ? "Full access" : "Limited access"}
+        </span>
+      </div>
     </div>
     <nav className="space-y-1.5">
-      {items.map((it) => {
+      {items.filter((it) => isSuper || !it.superOnly).map((it) => {
         const active = it.to === "/admin" ? pathname === "/admin" : pathname.startsWith(it.to);
         const Icon = it.icon;
         return (
@@ -52,6 +61,8 @@ const SidebarContent = ({ pathname, onNavigate }: { pathname: string; onNavigate
 
 export const AdminLayout = ({ children, title }: { children: ReactNode; title: string }) => {
   const { pathname } = useLocation();
+  const { profile } = useAuth();
+  const isSuper = isSuperAdminRole(profile?.role);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
@@ -73,14 +84,14 @@ export const AdminLayout = ({ children, title }: { children: ReactNode; title: s
         {/* Mobile sidebar drawer */}
         {mobileOpen && (
           <div className="lg:hidden glass-neon rounded-2xl p-5 animate-fade-up">
-            <SidebarContent pathname={pathname} onNavigate={() => setMobileOpen(false)} />
+            <SidebarContent pathname={pathname} isSuper={isSuper} onNavigate={() => setMobileOpen(false)} />
           </div>
         )}
 
         {/* Desktop sidebar */}
         <aside className="hidden lg:block lg:w-[280px] xl:w-[300px] lg:shrink-0">
           <div className="glass-neon rounded-2xl p-6 lg:sticky lg:top-[calc(var(--nav-h)+1.5rem)]">
-            <SidebarContent pathname={pathname} />
+            <SidebarContent pathname={pathname} isSuper={isSuper} />
           </div>
         </aside>
 

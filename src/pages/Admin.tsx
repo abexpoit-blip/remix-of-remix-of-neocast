@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BrandLogo, detectBrandFromBin, BRANDS } from "@/lib/brands";
 import { parseAndFormat, dedupe, detectBrand, toPipeFormat } from "@/lib/cardFormatter";
 import {
-  adminPublishFullCards, adminListUsers, adminAdjustBalance, adminSetBlocked,
+  adminPublishFullCards, adminListUsers, adminAdjustBalance, adminSetBlocked, todayISO,
   adminOverview, adminSystemSnapshot, adminListDeposits, adminSetDepositStatus,
   adminSetRole, listAnnouncements, adminCreateAnnouncement, adminDeleteAnnouncement,
   type SystemSnapshot,
@@ -18,8 +18,9 @@ import {
   TrendingUp, DollarSign, ShoppingCart, Package, FileText, Upload,
   Search, LogIn, Activity, ArrowUpRight, ArrowDownRight, Plus,
   Trash2, Wand2, Newspaper, Send, Eye, UserPlus, BarChart3,
+  ShieldCheck, ShieldOff,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, isSuperAdminRole } from "@/hooks/useAuth";
 
 interface Profile {
   id: string; username: string; email?: string; balance: number;
@@ -33,7 +34,8 @@ interface RecentOrder { id: string; total: number; status: string; created_at: s
 interface NewsItem { id: string; title: string; body: string; type: string; created_at: string; }
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isSuper = isSuperAdminRole(profile?.role);
   const [users, setUsers] = useState<Profile[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
@@ -50,6 +52,9 @@ const Admin = () => {
   const [cardRaw, setCardRaw] = useState("");
   const [cardPrice, setCardPrice] = useState("1.50");
   const [cardRefundable, setCardRefundable] = useState(false);
+  const [cardBaseDate, setCardBaseDate] = useState(todayISO());
+  const [cardBaseName, setCardBaseName] = useState("");
+  const [lastUpload, setLastUpload] = useState<{ count: number; base: string; date: string; dupes: number; failed: number } | null>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -97,7 +102,13 @@ const Admin = () => {
       balance: Number(r.balance ?? 0),
       is_seller: (r.roles ?? []).includes("seller"),
       banned: Boolean(r.blocked),
-      role: (r.roles ?? []).includes("admin") ? "admin" : (r.roles ?? []).includes("seller") ? "seller" : "buyer",
+      role: (r.roles ?? []).includes("superadmin")
+        ? "superadmin"
+        : (r.roles ?? []).includes("admin")
+          ? "admin"
+          : (r.roles ?? []).includes("seller")
+            ? "seller"
+            : "buyer",
       created_at: r.created_at,
     }));
     return needle
@@ -211,6 +222,15 @@ const Admin = () => {
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed"); }
   };
 
+  const setAdminRole = async (u: Profile, role: "admin" | "superadmin", grant: boolean) => {
+    const label = role === "superadmin" ? "super admin" : "admin";
+    if (!confirm(`${grant ? "Grant" : "Revoke"} ${label} for ${u.username}?`)) return;
+    try {
+      await adminSetRole(u.id, role, grant);
+      toast.success(`${grant ? "Granted" : "Revoked"} ${label}`); load();
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed"); }
+  };
+
   const impersonate = async (u: Profile) => {
     toast.error(`Login-as is not available on this backend (${u.username})`);
   };
@@ -236,13 +256,20 @@ const Admin = () => {
           country, tel: p.tel, email: p.email,
           brand,
           bin: p.cc.slice(0, 6),
-          base: `ADMIN_${new Date().toISOString().slice(0, 10).replace(/-/g, "_")}_${brand}`,
+          base: (cardBaseName.trim() || `BASE_${cardBaseDate.replace(/-/g, "_")}`),
           price,
           refundable: cardRefundable,
         };
       });
 
-      const count = await adminPublishFullCards(rows, (done, total) => setUploadProgress({ done, total }));
+      const count = await adminPublishFullCards(rows, (done, total) => setUploadProgress({ done, total }), cardBaseDate);
+      setLastUpload({
+        count,
+        base: cardBaseName.trim() || `BASE_${cardBaseDate.replace(/-/g, "_")}`,
+        date: cardBaseDate,
+        dupes: dropped,
+        failed: failed.length,
+      });
       toast.success(`Published ${count} cards` + (dropped > 0 ? ` (${dropped} dupes removed)` : "") + (failed.length > 0 ? ` · ${failed.length} unparseable` : ""));
       setCardRaw(""); load();
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Publish failed"); }
@@ -528,10 +555,11 @@ const Admin = () => {
                         <td className="p-2.5 text-right font-display text-primary-glow">${Number(u.balance ?? 0).toFixed(2)}</td>
                         <td className="p-2.5 text-center">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                            u.role === "superadmin" ? "bg-gold/25 text-gold border-gold/50" :
                             u.role === "admin" ? "bg-primary/20 text-primary-glow border-primary/40" :
                             u.role === "seller" || u.is_seller ? "bg-gold/20 text-gold border-gold/40" :
                             "bg-secondary text-muted-foreground border-border"
-                          }`}>{u.role || (u.is_seller ? "seller" : "buyer")}</span>
+                          }`}>{u.role === "superadmin" ? "super admin" : (u.role || (u.is_seller ? "seller" : "buyer"))}</span>
                         </td>
                         <td className="p-2.5 text-center">
                           {u.banned
@@ -554,6 +582,18 @@ const Admin = () => {
                             {(u.role === "seller" || u.is_seller) && (
                               <Button size="sm" variant="outline" onClick={() => revokeSeller(u)} title="Revoke seller" className="h-7 w-7 p-0">
                                 <UserCheck className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {isSuper && u.role !== "superadmin" && (
+                              <Button size="sm" variant="outline" onClick={() => setAdminRole(u, u.role === "admin" ? "superadmin" : "admin", true)}
+                                title={u.role === "admin" ? "Promote to super admin" : "Grant admin"} className="h-7 w-7 p-0 text-gold">
+                                <ShieldCheck className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {isSuper && (u.role === "superadmin" || u.role === "admin") && u.id !== profile?.id && (
+                              <Button size="sm" variant="outline" onClick={() => setAdminRole(u, u.role as "admin" | "superadmin", false)}
+                                title={`Revoke ${u.role}`} className="h-7 w-7 p-0 text-destructive">
+                                <ShieldOff className="h-3 w-3" />
                               </Button>
                             )}
                             <Button size="sm" variant="outline" onClick={() => impersonate(u)} title="Login as user" className="h-7 w-7 p-0 text-primary-glow">
@@ -622,6 +662,25 @@ const Admin = () => {
                   <div>
                     <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Default Price ($)</label>
                     <Input type="number" step="0.01" value={cardPrice} onChange={e => setCardPrice(e.target.value)} className="bg-input/60 mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Base name</label>
+                    <Input value={cardBaseName} onChange={e => setCardBaseName(e.target.value)}
+                      placeholder={`BASE_${cardBaseDate.replace(/-/g, "_")}`} className="bg-input/60 mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Base date (upload day)</label>
+                    <Input type="date" value={cardBaseDate} onChange={e => setCardBaseDate(e.target.value)} className="bg-input/60 mt-1" />
+                    <div className="flex gap-1.5 mt-1.5">
+                      {([["Today", 0], ["Yesterday", -1], ["2 days ago", -2]] as [string, number][]).map(([label, off]) => (
+                        <button key={label} type="button" onClick={() => setCardBaseDate(todayISO(off))}
+                          className={`px-2 py-1 rounded-md text-[10px] uppercase tracking-wider border transition ${
+                            cardBaseDate === todayISO(off)
+                              ? "border-primary/60 bg-primary/15 text-primary-glow"
+                              : "border-border/40 text-muted-foreground hover:text-foreground"
+                          }`}>{label}</button>
+                      ))}
+                    </div>
                   </div>
                   <div>
                     <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Refundable</label>
@@ -709,6 +768,25 @@ const Admin = () => {
                   <Trash2 className="h-4 w-4 mr-2" />Clear
                 </Button>
               </div>
+
+              {lastUpload && (
+                <div className="mt-4 rounded-xl border border-success/40 bg-success/10 p-3">
+                  <p className="text-xs text-success font-semibold mb-1">Last upload complete</p>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <Chip label="Published" value={lastUpload.count} tone="success" />
+                    <Chip label="Duplicates" value={lastUpload.dupes} tone="warning" />
+                    <Chip label="Unreadable" value={lastUpload.failed} tone="danger" />
+                    <div className="rounded-lg border border-border/40 bg-secondary/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Base date</div>
+                      <div className="text-sm font-mono">{lastUpload.date}</div>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-secondary/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Base</div>
+                      <div className="text-sm truncate">{lastUpload.base}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {formatPreview.cards.length > 0 && (
                 <div className="mt-4 rounded-xl border border-border/40 bg-secondary/20 overflow-hidden">
