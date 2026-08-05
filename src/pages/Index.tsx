@@ -216,24 +216,10 @@ const Index = () => {
           </div>
         </Panel>
 
-        {/* ANNOUNCEMENTS */}
-        <Panel title="Announcements" icon={<Megaphone className="h-4 w-4" />}>
-          <div className="px-5 py-5 space-y-4 max-h-[420px] overflow-y-auto">
-            {anns.length === 0 ? (
-              <div className="rounded-lg border border-[#eee] bg-[#fafafa] p-5 text-center">
-                <h3 className="text-[15px] font-semibold text-[#1a1a1a]">Welcome to NeoCast</h3>
-                <p className="mt-1.5 text-[13px] text-[#666] leading-relaxed">
-                  Follow the official channel so you never miss a drop or an update.
-                </p>
-              </div>
-            ) : (
-              anns.map((a) => (
-                <article key={a.id} className="rounded-lg border border-[#eee] bg-white p-4 border-l-[3px] border-l-[var(--nc-accent)]">
-                  <h3 className="text-[14px] font-semibold text-[#1a1a1a]">{a.title}</h3>
-                  <p className="mt-1.5 text-[13px] text-[#555] leading-[1.75] whitespace-pre-line">{a.body}</p>
-                </article>
-              ))
-            )}
+        {/* LATEST NOTICES */}
+        <Panel title="Latest notices" icon={<Megaphone className="h-4 w-4" />}>
+          <div className="p-4">
+            <AnnouncementNoticeGrid announcements={anns} loading={loading} max={9} />
           </div>
         </Panel>
       </div>
