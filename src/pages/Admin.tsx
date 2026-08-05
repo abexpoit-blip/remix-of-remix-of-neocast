@@ -18,8 +18,9 @@ import {
   TrendingUp, DollarSign, ShoppingCart, Package, FileText, Upload,
   Search, LogIn, Activity, ArrowUpRight, ArrowDownRight, Plus,
   Trash2, Wand2, Newspaper, Send, Eye, UserPlus, BarChart3,
+  ShieldCheck, ShieldOff,
 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, isSuperAdminRole } from "@/hooks/useAuth";
 
 interface Profile {
   id: string; username: string; email?: string; balance: number;
@@ -33,7 +34,8 @@ interface RecentOrder { id: string; total: number; status: string; created_at: s
 interface NewsItem { id: string; title: string; body: string; type: string; created_at: string; }
 
 const Admin = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const isSuper = isSuperAdminRole(profile?.role);
   const [users, setUsers] = useState<Profile[]>([]);
   const [deposits, setDeposits] = useState<Deposit[]>([]);
   const [payouts, setPayouts] = useState<Payout[]>([]);
