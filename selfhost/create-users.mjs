@@ -5,14 +5,13 @@ const URL_ = process.env.SUPABASE_URL;
 const KEY = process.env.SERVICE_KEY;
 if (!URL_ || !KEY) throw new Error('SUPABASE_URL and SERVICE_KEY required');
 
-// Optional CLI args: node create-users.mjs <email> <password> [role]
+// Required CLI args: node create-users.mjs <email> <password> [role]
+// No default accounts and no hardcoded passwords — credentials must be passed in.
 const [argEmail, argPass, argRole] = process.argv.slice(2);
-const users = argEmail
-  ? [{ email: argEmail, password: argPass || 'Demo#2026', role: argRole || 'buyer' }]
-  : [
-      { email: 'admin@neocast.cc', password: process.env.ADMIN_PASS || 'NeoAdmin#2026', role: 'admin' },
-      { email: 'user@neocast.cc', password: process.env.USER_PASS || 'NeoUser#2026', role: 'buyer' },
-    ];
+if (!argEmail || !argPass) {
+  throw new Error('usage: node create-users.mjs <email> <password> [role]');
+}
+const users = [{ email: argEmail, password: argPass, role: argRole || 'buyer' }];
 
 for (const u of users) {
   const res = await fetch(`${URL_}/auth/v1/admin/users`, {
