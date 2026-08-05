@@ -63,7 +63,7 @@ const AdminShop = () => {
     if (!rows.length) { toast.error("No valid rows"); return; }
     setBulkBusy(true);
     try {
-      const n = await adminBulkCreateCards(rows, bulkCat || null, bulkBaseDate);
+      const n = await adminBulkCreateCards(rows, bulkCat || null, { baseDate: bulkBaseDate });
       setBulkStats({ n, date: bulkBaseDate, skipped: errors.length });
       toast.success(`Items uploaded: ${n}${errors.length ? ` · skipped: ${errors.length}` : ""} · base date ${bulkBaseDate}`);
       setBulkText("");
