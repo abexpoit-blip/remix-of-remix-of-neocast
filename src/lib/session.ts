@@ -1,4 +1,4 @@
-export const SESSION_START_KEY = "zoru.session.start";
+export const SESSION_START_KEY = "neocast.session.start";
 export const SESSION_MINUTES = 30;
 
 export function markSessionStart() {

@@ -21,7 +21,7 @@ const txt = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null
 /** https://data.handyapi.com — free, no key, good coverage */
 async function fromHandy(bin: string): Promise<BinInfo | null> {
   const r = await fetch(`https://data.handyapi.com/bin/${bin}`, {
-    headers: { "User-Agent": "zoru-shop/1.0", Accept: "application/json" },
+    headers: { "User-Agent": "neocast-shop/1.0", Accept: "application/json" },
   });
   if (!r.ok) return null;
   const j = (await r.json()) as Record<string, any>;
@@ -42,7 +42,7 @@ async function fromHandy(bin: string): Promise<BinInfo | null> {
 /** https://lookup.binlist.net — fallback (rate limited) */
 async function fromBinlist(bin: string): Promise<BinInfo | null> {
   const r = await fetch(`https://lookup.binlist.net/${bin}`, {
-    headers: { "Accept-Version": "3", Accept: "application/json", "User-Agent": "zoru-shop/1.0" },
+    headers: { "Accept-Version": "3", Accept: "application/json", "User-Agent": "neocast-shop/1.0" },
   });
   if (!r.ok) return null;
   const j = (await r.json()) as Record<string, any>;
