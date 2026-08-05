@@ -114,10 +114,6 @@ const Auth = () => {
         tagline={
           <>
             Sign in to buy verified cards with instant delivery.
-            <br />
-            <a href="https://t.me/scorpionccstore02" className="text-[var(--nc-accent-pale)] font-semibold hover:underline">
-              @scorpionccstore02
-            </a>
           </>
         }
 

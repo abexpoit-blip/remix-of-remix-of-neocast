@@ -16,7 +16,7 @@ interface Deposit { id: string; amount: number; method: string; txid: string | n
 interface Transaction { id: string; type: string; amount: number; note?: string; method?: string; ref_id?: string; meta?: string; created_at: string; }
 
 const INVOICE_TTL_SEC = 30 * 60;
-const STORAGE_KEY = "zoru.activeInvoice";
+const STORAGE_KEY = "neocast.activeInvoice";
 
 const formatCountdown = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds <= 0) return "00:00";

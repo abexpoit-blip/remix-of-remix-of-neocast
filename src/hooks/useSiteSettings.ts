@@ -32,15 +32,15 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     "★ VERIFIED SELLERS · INSTANT DELIVERY",
     "● 99.4% VALIDITY THIS WEEK",
     "↗ AUTO-REPLACEMENT WITHIN 5 MINUTES",
-    "● 24/7 SUPPORT · TELEGRAM",
+    "● 24/7 SUPPORT",
   ],
   default_commission_percent: 20,
   min_card_price: 1,
   deposit_fee_percent: 0,
   deposit_fee_flat: 0,
   min_deposit: 5,
-  support_telegram: "@neocast_support",
-  support_telegram_channel: "@neocast_news",
+  support_telegram: "",
+  support_telegram_channel: "",
 };
 
 let cache: SiteSettings | null = null;

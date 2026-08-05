@@ -7,7 +7,7 @@ import { createContext, useContext, useEffect, ReactNode } from "react";
  */
 export type Lang = "en";
 
-const LS_KEY = "zoru.lang";
+const LS_KEY = "neocast.lang";
 
 interface LangCtx { lang: Lang; setLang: (l: Lang) => void; toggle: () => void }
 const Ctx = createContext<LangCtx>({ lang: "en", setLang: () => {}, toggle: () => {} });

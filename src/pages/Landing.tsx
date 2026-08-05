@@ -114,14 +114,6 @@ export default function Landing() {
       <footer className="border-t border-[#e6e6e6] bg-[#1f2d3d] text-white/70">
         <div className="mx-auto max-w-[1200px] px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
           <div>© {new Date().getFullYear()} NeoCast. All rights reserved.</div>
-          <a
-            href="https://t.me/scorpionccstore02"
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-[#4fc3f7]"
-          >
-            Telegram · @scorpionccstore02
-          </a>
         </div>
       </footer>
     </div>

@@ -15,8 +15,8 @@ export interface CartLine {
   price: number;
 }
 
-const KEY = "zoru_cart_v1";
-const EVT = "zoru-cart-updated";
+const KEY = "neocast_cart_v1";
+const EVT = "neocast-cart-updated";
 
 export const getCart = (): CartLine[] => {
   if (typeof window === "undefined") return [];
