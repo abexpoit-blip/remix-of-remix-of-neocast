@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { BrandLogo, detectBrandFromBin, BRANDS } from "@/lib/brands";
 import { parseAndFormat, dedupe, detectBrand, toPipeFormat } from "@/lib/cardFormatter";
 import {
-  adminPublishFullCards, adminListUsers, adminAdjustBalance, adminSetBlocked,
+  adminPublishFullCards, adminListUsers, adminAdjustBalance, adminSetBlocked, todayISO,
   adminOverview, adminSystemSnapshot, adminListDeposits, adminSetDepositStatus,
   adminSetRole, listAnnouncements, adminCreateAnnouncement, adminDeleteAnnouncement,
   type SystemSnapshot,
@@ -50,6 +50,9 @@ const Admin = () => {
   const [cardRaw, setCardRaw] = useState("");
   const [cardPrice, setCardPrice] = useState("1.50");
   const [cardRefundable, setCardRefundable] = useState(false);
+  const [cardBaseDate, setCardBaseDate] = useState(todayISO());
+  const [cardBaseName, setCardBaseName] = useState("");
+  const [lastUpload, setLastUpload] = useState<{ count: number; base: string; date: string; dupes: number; failed: number } | null>(null);
   const [uploadBusy, setUploadBusy] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -97,7 +100,13 @@ const Admin = () => {
       balance: Number(r.balance ?? 0),
       is_seller: (r.roles ?? []).includes("seller"),
       banned: Boolean(r.blocked),
-      role: (r.roles ?? []).includes("admin") ? "admin" : (r.roles ?? []).includes("seller") ? "seller" : "buyer",
+      role: (r.roles ?? []).includes("superadmin")
+        ? "superadmin"
+        : (r.roles ?? []).includes("admin")
+          ? "admin"
+          : (r.roles ?? []).includes("seller")
+            ? "seller"
+            : "buyer",
       created_at: r.created_at,
     }));
     return needle
@@ -236,13 +245,20 @@ const Admin = () => {
           country, tel: p.tel, email: p.email,
           brand,
           bin: p.cc.slice(0, 6),
-          base: `ADMIN_${new Date().toISOString().slice(0, 10).replace(/-/g, "_")}_${brand}`,
+          base: (cardBaseName.trim() || `BASE_${cardBaseDate.replace(/-/g, "_")}`),
           price,
           refundable: cardRefundable,
         };
       });
 
-      const count = await adminPublishFullCards(rows, (done, total) => setUploadProgress({ done, total }));
+      const count = await adminPublishFullCards(rows, (done, total) => setUploadProgress({ done, total }), cardBaseDate);
+      setLastUpload({
+        count,
+        base: cardBaseName.trim() || `BASE_${cardBaseDate.replace(/-/g, "_")}`,
+        date: cardBaseDate,
+        dupes: dropped,
+        failed: failed.length,
+      });
       toast.success(`Published ${count} cards` + (dropped > 0 ? ` (${dropped} dupes removed)` : "") + (failed.length > 0 ? ` · ${failed.length} unparseable` : ""));
       setCardRaw(""); load();
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Publish failed"); }
@@ -624,6 +640,25 @@ const Admin = () => {
                     <Input type="number" step="0.01" value={cardPrice} onChange={e => setCardPrice(e.target.value)} className="bg-input/60 mt-1" />
                   </div>
                   <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Base name</label>
+                    <Input value={cardBaseName} onChange={e => setCardBaseName(e.target.value)}
+                      placeholder={`BASE_${cardBaseDate.replace(/-/g, "_")}`} className="bg-input/60 mt-1" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Base date (upload day)</label>
+                    <Input type="date" value={cardBaseDate} onChange={e => setCardBaseDate(e.target.value)} className="bg-input/60 mt-1" />
+                    <div className="flex gap-1.5 mt-1.5">
+                      {([["Today", 0], ["Yesterday", -1], ["2 days ago", -2]] as [string, number][]).map(([label, off]) => (
+                        <button key={label} type="button" onClick={() => setCardBaseDate(todayISO(off))}
+                          className={`px-2 py-1 rounded-md text-[10px] uppercase tracking-wider border transition ${
+                            cardBaseDate === todayISO(off)
+                              ? "border-primary/60 bg-primary/15 text-primary-glow"
+                              : "border-border/40 text-muted-foreground hover:text-foreground"
+                          }`}>{label}</button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
                     <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Refundable</label>
                     <Select value={cardRefundable ? "yes" : "no"} onValueChange={v => setCardRefundable(v === "yes")}>
                       <SelectTrigger className="bg-input/60 mt-1"><SelectValue /></SelectTrigger>
@@ -709,6 +744,25 @@ const Admin = () => {
                   <Trash2 className="h-4 w-4 mr-2" />Clear
                 </Button>
               </div>
+
+              {lastUpload && (
+                <div className="mt-4 rounded-xl border border-success/40 bg-success/10 p-3">
+                  <p className="text-xs text-success font-semibold mb-1">Last upload complete</p>
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <Chip label="Published" value={lastUpload.count} tone="success" />
+                    <Chip label="Duplicates" value={lastUpload.dupes} tone="warning" />
+                    <Chip label="Unreadable" value={lastUpload.failed} tone="danger" />
+                    <div className="rounded-lg border border-border/40 bg-secondary/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Base date</div>
+                      <div className="text-sm font-mono">{lastUpload.date}</div>
+                    </div>
+                    <div className="rounded-lg border border-border/40 bg-secondary/40 px-3 py-2">
+                      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">Base</div>
+                      <div className="text-sm truncate">{lastUpload.base}</div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {formatPreview.cards.length > 0 && (
                 <div className="mt-4 rounded-xl border border-border/40 bg-secondary/20 overflow-hidden">
