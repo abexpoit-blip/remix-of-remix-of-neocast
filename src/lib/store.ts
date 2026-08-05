@@ -33,6 +33,7 @@ export interface Product {
   brand: string | null;
   country: string | null;
   base: string | null;
+  base_date: string | null;
   exp_month: string | null;
   exp_year: string | null;
   city: string | null;
@@ -233,7 +234,9 @@ export const adminAdjustBalance = async (userId: string, amount: number, descrip
   if (error) throw error;
 };
 
-export const adminSetRole = async (userId: string, role: "admin" | "seller" | "buyer", grant: boolean) => {
+export type ManagedRole = "superadmin" | "admin" | "seller" | "buyer";
+
+export const adminSetRole = async (userId: string, role: ManagedRole, grant: boolean) => {
   const { error } = await supabase.rpc("admin_set_role", { _user_id: userId, _role: role, _grant: grant });
   if (error) throw error;
 };
@@ -320,6 +323,7 @@ export interface ProductInput {
   brand?: string | null;
   country?: string | null;
   base?: string | null;
+  base_date?: string | null;
   exp_month?: string | null;
   exp_year?: string | null;
   city?: string | null;
@@ -458,10 +462,16 @@ const withRetry = async <T,>(fn: () => Promise<T>, attempts = 3): Promise<T> => 
 };
 
 
-export const adminBulkCreateCards = async (rows: BulkCardRow[], categoryId: string | null = null) => {
+export const adminBulkCreateCards = async (
+  rows: BulkCardRow[],
+  categoryId: string | null = null,
+  opts: { base?: string | null; baseDate?: string | null } = {},
+) => {
   if (!rows.length) return 0;
   const payload = rows.map((r) => ({
     category_id: categoryId,
+    base: opts.base?.trim() || null,
+    base_date: opts.baseDate || todayISO(),
     title: `${r.brand || "CARD"} ${r.bin} · ${r.city || r.state || r.country}`,
     slug: `${r.bin}-${r.zip || "x"}-${Math.random().toString(36).slice(2, 8)}`,
     price: r.price,
@@ -514,6 +524,7 @@ export interface FullCardInput {
 export const adminPublishFullCards = async (
   cards: FullCardInput[],
   onProgress?: (done: number, total: number) => void,
+  baseDate?: string | null,
 ) => {
   if (!cards.length) return 0;
   const clean = (s: string) => (!s || s.toLowerCase() === "null" ? "" : s);
@@ -537,6 +548,7 @@ export const adminPublishFullCards = async (
     exp_month: clean(c.month) || null,
     exp_year: clean(c.year) || null,
     base: c.base,
+    base_date: baseDate || todayISO(),
     refundable: c.refundable,
     has_phone: !!clean(c.tel),
     has_email: !!clean(c.email),
@@ -833,4 +845,127 @@ export const adminHideExpiredCards = async () => {
   const ids = rows.map((r) => r.id);
   await adminUpdateCards(ids, { active: false });
   return ids.length;
+};
+
+
+/* ---------------- base dates + super-admin card export ---------------- */
+
+/** Local (not UTC) YYYY-MM-DD — matches what the admin sees on their calendar. */
+export const todayISO = (offsetDays = 0) => {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDays);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+export interface BaseGroup {
+  base_date: string;
+  base: string;
+  total: number;
+  available: number;
+  sold: number;
+}
+
+/** Upload activity grouped by base date + base name (admin dashboard / export filters). */
+export const adminListBaseGroups = async (limitDays = 60): Promise<BaseGroup[]> => {
+  const since = todayISO(-limitDays);
+  const { data, error } = await supabase
+    .from("products")
+    .select("base, base_date, stock, sold_count")
+    .gte("base_date", since)
+    .order("base_date", { ascending: false })
+    .limit(5000);
+  if (error) throw error;
+  const map = new Map<string, BaseGroup>();
+  (data ?? []).forEach((p) => {
+    const key = `${p.base_date}__${p.base ?? "—"}`;
+    const g = map.get(key) ?? { base_date: String(p.base_date), base: p.base ?? "—", total: 0, available: 0, sold: 0 };
+    g.total += 1;
+    g.available += Number(p.stock ?? 0) > 0 ? 1 : 0;
+    g.sold += Number(p.sold_count ?? 0);
+    map.set(key, g);
+  });
+  return [...map.values()].sort((a, b) => (a.base_date < b.base_date ? 1 : -1));
+};
+
+export interface ExportFilter {
+  from: string;
+  to: string;
+  base?: string | null;
+  includeSold?: boolean;
+}
+
+export interface ExportedCard {
+  base_date: string;
+  base: string;
+  bin: string;
+  brand: string;
+  country: string;
+  state: string;
+  city: string;
+  zip: string;
+  exp_month: string;
+  exp_year: string;
+  price: number;
+  sold: boolean;
+  content: string;
+}
+
+/**
+ * Full card export — the raw card lines are only readable by super admins
+ * (enforced by the database policy on product_keys), so a normal admin
+ * calling this simply gets nothing back.
+ */
+export const adminExportCards = async (f: ExportFilter): Promise<ExportedCard[]> => {
+  let q = supabase
+    .from("products")
+    .select("id, base, base_date, bin, brand, country, state, city, zip, exp_month, exp_year, price, product_keys(content, is_sold)")
+    .gte("base_date", f.from)
+    .lte("base_date", f.to)
+    .order("base_date", { ascending: false })
+    .limit(20000);
+  if (f.base) q = q.eq("base", f.base);
+  const { data, error } = await q;
+  if (error) throw error;
+
+  const out: ExportedCard[] = [];
+  (data ?? []).forEach((p) => {
+    const keys = (p.product_keys ?? []) as { content: string; is_sold: boolean }[];
+    keys.forEach((k) => {
+      if (!f.includeSold && k.is_sold) return;
+      out.push({
+        base_date: String(p.base_date ?? ""),
+        base: p.base ?? "",
+        bin: p.bin ?? "",
+        brand: p.brand ?? "",
+        country: p.country ?? "",
+        state: p.state ?? "",
+        city: p.city ?? "",
+        zip: p.zip ?? "",
+        exp_month: p.exp_month ?? "",
+        exp_year: p.exp_year ?? "",
+        price: Number(p.price ?? 0),
+        sold: Boolean(k.is_sold),
+        content: k.content,
+      });
+    });
+  });
+  return out;
+};
+
+export const exportedCardsToCsv = (rows: ExportedCard[]) => {
+  const head = ["base_date", "base", "bin", "brand", "country", "state", "city", "zip", "exp_month", "exp_year", "price", "sold", "card_line"];
+  const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  return [head.join(","), ...rows.map((r) =>
+    [r.base_date, r.base, r.bin, r.brand, r.country, r.state, r.city, r.zip, r.exp_month, r.exp_year, r.price, r.sold ? "yes" : "no", r.content].map(esc).join(","),
+  )].join("\n");
+};
+
+export const downloadTextFile = (filename: string, content: string) => {
+  const blob = new Blob([content], { type: "text/plain;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 };
