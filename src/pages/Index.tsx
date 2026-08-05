@@ -21,7 +21,7 @@ import {
 const Index = () => {
   const { profile } = useAuth();
   const [news, setNews] = useState<{ id: string; label: string; count: number }[]>([]);
-  const [anns, setAnns] = useState<{ id: string; title: string; body: string }[]>([]);
+  const [anns, setAnns] = useState<{ id: string; title: string; body: string; kind?: string; created_at?: string }[]>([]);
   const [orders, setOrders] = useState<VpsOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
