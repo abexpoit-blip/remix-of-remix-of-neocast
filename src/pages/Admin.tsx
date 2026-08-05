@@ -220,6 +220,15 @@ const Admin = () => {
     } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed"); }
   };
 
+  const setAdminRole = async (u: Profile, role: "admin" | "superadmin", grant: boolean) => {
+    const label = role === "superadmin" ? "super admin" : "admin";
+    if (!confirm(`${grant ? "Grant" : "Revoke"} ${label} for ${u.username}?`)) return;
+    try {
+      await adminSetRole(u.id, role, grant);
+      toast.success(`${grant ? "Granted" : "Revoked"} ${label}`); load();
+    } catch (e: unknown) { toast.error(e instanceof Error ? e.message : "Failed"); }
+  };
+
   const impersonate = async (u: Profile) => {
     toast.error(`Login-as is not available on this backend (${u.username})`);
   };
@@ -544,10 +553,11 @@ const Admin = () => {
                         <td className="p-2.5 text-right font-display text-primary-glow">${Number(u.balance ?? 0).toFixed(2)}</td>
                         <td className="p-2.5 text-center">
                           <span className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                            u.role === "superadmin" ? "bg-gold/25 text-gold border-gold/50" :
                             u.role === "admin" ? "bg-primary/20 text-primary-glow border-primary/40" :
                             u.role === "seller" || u.is_seller ? "bg-gold/20 text-gold border-gold/40" :
                             "bg-secondary text-muted-foreground border-border"
-                          }`}>{u.role || (u.is_seller ? "seller" : "buyer")}</span>
+                          }`}>{u.role === "superadmin" ? "super admin" : (u.role || (u.is_seller ? "seller" : "buyer"))}</span>
                         </td>
                         <td className="p-2.5 text-center">
                           {u.banned
@@ -570,6 +580,18 @@ const Admin = () => {
                             {(u.role === "seller" || u.is_seller) && (
                               <Button size="sm" variant="outline" onClick={() => revokeSeller(u)} title="Revoke seller" className="h-7 w-7 p-0">
                                 <UserCheck className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {isSuper && u.role !== "superadmin" && (
+                              <Button size="sm" variant="outline" onClick={() => setAdminRole(u, u.role === "admin" ? "superadmin" : "admin", true)}
+                                title={u.role === "admin" ? "Promote to super admin" : "Grant admin"} className="h-7 w-7 p-0 text-gold">
+                                <ShieldCheck className="h-3 w-3" />
+                              </Button>
+                            )}
+                            {isSuper && (u.role === "superadmin" || u.role === "admin") && u.id !== profile?.id && (
+                              <Button size="sm" variant="outline" onClick={() => setAdminRole(u, u.role as "admin" | "superadmin", false)}
+                                title={`Revoke ${u.role}`} className="h-7 w-7 p-0 text-destructive">
+                                <ShieldOff className="h-3 w-3" />
                               </Button>
                             )}
                             <Button size="sm" variant="outline" onClick={() => impersonate(u)} title="Login as user" className="h-7 w-7 p-0 text-primary-glow">
