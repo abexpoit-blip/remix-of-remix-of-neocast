@@ -33,7 +33,7 @@ export interface Product {
   brand: string | null;
   country: string | null;
   base: string | null;
-  base_date: string | null;
+  base_date: string;
   exp_month: string | null;
   exp_year: string | null;
   city: string | null;
@@ -323,7 +323,7 @@ export interface ProductInput {
   brand?: string | null;
   country?: string | null;
   base?: string | null;
-  base_date?: string | null;
+  base_date?: string;
   exp_month?: string | null;
   exp_year?: string | null;
   city?: string | null;
