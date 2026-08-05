@@ -1,1 +1,0 @@
-REVOKE EXECUTE ON FUNCTION public.sync_product_stock() FROM anon, authenticated, public;
