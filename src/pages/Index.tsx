@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { newsApi, announcementsApi, ordersApi, type VpsOrder } from "@/lib/api";
+import { AnnouncementTicker } from "@/components/shop/AnnouncementTicker";
+import { AnnouncementNoticeGrid } from "@/components/shop/AnnouncementNoticeGrid";
 import { AppShell } from "@/components/AppShell";
 import Seo from "@/components/Seo";
+
 import { useAuth } from "@/hooks/useAuth";
 import {
   Activity, Megaphone, ShieldCheck, MessageCircle, ArrowRight,
