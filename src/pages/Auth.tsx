@@ -119,23 +119,13 @@ const Auth = () => {
 
       >
 
-        {/* Tabs */}
-        <div className="flex mb-6 p-1 rounded-xl bg-white/[0.04] border border-white/10 backdrop-blur-sm">
-          {(["login", "signup"] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => setMode(m)}
-              className={`flex-1 py-2 text-[12px] font-semibold tracking-[0.15em] uppercase rounded-lg transition-all ${
-                mode === m
-                  ? "bg-gradient-to-r from-[var(--nc-accent)] via-[var(--nc-accent-lo)] to-[var(--nc-accent-soft)] text-white shadow-[0_4px_16px_rgba(var(--nc-accent-rgb),0.35)]"
-                  : "text-white/60 hover:text-white/90"
-              }`}
-            >
-              {m === "login" ? "Sign in" : "Sign up"}
-            </button>
-          ))}
+        {/* Single mode header — signup is reachable via the link below */}
+        <div className="mb-6 text-center">
+          <div className="text-[12px] font-semibold tracking-[0.2em] uppercase text-[var(--nc-accent-soft)]">
+            {mode === "login" ? "Sign in" : "Create account"}
+          </div>
         </div>
+
 
         {savedAccounts.length > 0 && mode === "login" && (
           <div className="mb-5">
