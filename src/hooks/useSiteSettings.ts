@@ -15,6 +15,8 @@ export interface SiteSettings {
   deposit_fee_percent: number;
   deposit_fee_flat: number;
   min_deposit: number;
+  support_telegram: string;
+  support_telegram_channel: string;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -37,6 +39,8 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   deposit_fee_percent: 0,
   deposit_fee_flat: 0,
   min_deposit: 5,
+  support_telegram: "@neocast_support",
+  support_telegram_channel: "@neocast_news",
 };
 
 let cache: SiteSettings | null = null;
