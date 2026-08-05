@@ -1,7 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link, Navigate, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ChevronDown, ClipboardList, LogOut, Menu, Plus, ShieldCheck, Wallet, X } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, isAdminRole, isSuperAdminRole } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useSessionTimeout } from "@/hooks/useSessionTimeout";
