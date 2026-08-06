@@ -4,7 +4,7 @@
 -- ============================================
 
 -- App role enum
-CREATE TYPE public.app_role AS ENUM ('buyer', 'seller', 'admin');
+CREATE TYPE public.app_role AS ENUM ('buyer', 'seller', 'admin', 'superadmin');
 
 -- ============================================
 -- profiles table

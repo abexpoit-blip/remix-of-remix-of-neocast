@@ -3,8 +3,6 @@
 
 ALTER TYPE public.app_role ADD VALUE IF NOT EXISTS 'superadmin';
 
-COMMIT;
-
 CREATE OR REPLACE FUNCTION public.is_superadmin(_user_id uuid)
 RETURNS boolean
 LANGUAGE sql
