@@ -1,0 +1,1 @@
+DELETE FROM public.announcements WHERE title IN ('Maintenance tonight', 'New stock added', 'Redeem codes live');
