@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { NavLink, useLocation } from "react-router-dom";
-import { Shield, ShieldCheck, LayoutDashboard, CreditCard, KeyRound, Settings as SettingsIcon, Menu, X, Banknote, DollarSign, LayoutGrid, Download, Megaphone } from "lucide-react";
+import { Shield, ShieldCheck, LayoutDashboard, CreditCard, KeyRound, Settings as SettingsIcon, Menu, X, Banknote, DollarSign, LayoutGrid, Download, Megaphone, Gift } from "lucide-react";
 import { useAuth, isSuperAdminRole } from "@/hooks/useAuth";
 
 interface Item { to: string; label: string; icon: React.ComponentType<{ className?: string }>; superOnly?: boolean; }
@@ -13,6 +13,7 @@ const items: Item[] = [
   { to: "/admin/cards", label: "Card moderation", icon: CreditCard },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/payments", label: "Payments · Deposits", icon: DollarSign },
+  { to: "/admin/redeem", label: "Redeem codes", icon: Gift },
   { to: "/admin/export", label: "Card export", icon: Download, superOnly: true },
 
   { to: "/admin/payment-gateway", label: "Plisio Payment Gateway", icon: Banknote, superOnly: true },

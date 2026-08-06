@@ -7,9 +7,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import {
   CheckCircle2, Copy, Clock, XCircle, Loader2,
-  AlertCircle, ArrowDownLeft, ArrowUpRight, TimerReset, Receipt, ShieldCheck, Wallet,
+  AlertCircle, ArrowDownLeft, ArrowUpRight, TimerReset, Receipt, ShieldCheck, Wallet, Gift,
 } from "lucide-react";
 import { toast } from "sonner";
+import { redeemCode, translateRedeemError } from "@/lib/store";
 import { QRCodeSVG } from "qrcode.react";
 
 interface Deposit { id: string; amount: number; method: string; txid: string | null; status: string; created_at: string; crypto_currency?: string; plisio_wallet?: string; confirmations?: number; }
@@ -26,7 +27,7 @@ const formatCountdown = (seconds: number) => {
 };
 
 const Recharge = () => {
-  const { profile } = useAuth();
+  const { profile, refresh } = useAuth();
   const settings = useSiteSettings();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -37,6 +38,8 @@ const Recharge = () => {
   const [history, setHistory] = useState<Deposit[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [redeemInput, setRedeemInput] = useState("");
+  const [redeemBusy, setRedeemBusy] = useState(false);
 
   const [activeInvoice, setActiveInvoiceRaw] = useState<{
     deposit_id: string; wallet_address: string; crypto_amount: string;
@@ -216,6 +219,23 @@ const Recharge = () => {
     if (type === "purchase") return <ArrowUpRight className="h-4 w-4 text-[#c0392b]" />;
     if (type === "refund") return <ArrowDownLeft className="h-4 w-4 text-[var(--nc-accent)]" />;
     return <Receipt className="h-4 w-4 text-[#888]" />;
+  };
+
+  const submitRedeem = async () => {
+    const code = redeemInput.trim();
+    if (!code) return toast.error("Enter a redeem code");
+    setRedeemBusy(true);
+    try {
+      const credited = await redeemCode(code);
+      toast.success(`$${credited.toFixed(2)} added to your balance`);
+      setRedeemInput("");
+      await refresh();
+      void loadTransactions();
+    } catch (e) {
+      toast.error(translateRedeemError(e instanceof Error ? e.message : "Redeem failed"));
+    } finally {
+      setRedeemBusy(false);
+    }
   };
 
   const cancelInvoice = () => {
@@ -450,6 +470,16 @@ const Recharge = () => {
                     <span>Total to pay</span>
                     <span className="font-mono font-semibold text-[var(--nc-accent)]">${(amtNum * 1.02).toFixed(2)}</span>
                   </div>
+                  <div className="flex items-center justify-between border-t border-[#eee] pt-1.5 mt-1.5">
+                    <span className="font-semibold text-[#1f2d3d]">Added to balance (after fee)</span>
+                    <span className="font-mono font-semibold text-[#2e7d32]">+${amtNum.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Balance after deposit</span>
+                    <span className="font-mono font-semibold text-[#1f2d3d]">
+                      ${(Number(profile?.balance ?? 0) + amtNum).toFixed(2)}
+                    </span>
+                  </div>
                   <div className="flex items-center justify-between">
                     <span>Current balance</span>
                     <span className="font-mono font-semibold text-[#1f2d3d]">${Number(profile?.balance ?? 0).toFixed(2)}</span>
@@ -472,6 +502,33 @@ const Recharge = () => {
             </div>
           </section>
         )}
+
+        {/* Redeem code */}
+        <section className="bg-white border border-[#e6e6e6] rounded-lg overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="px-4 h-11 flex items-center gap-2 bg-[var(--nc-ink-2)] text-[13px] text-white/85 uppercase tracking-wider border-b-2 border-[var(--nc-accent)]">
+            <Gift className="h-4 w-4 text-[var(--nc-accent-soft)]" /> Redeem a code
+          </div>
+          <div className="p-4 flex flex-col sm:flex-row gap-3 sm:items-center">
+            <input
+              value={redeemInput}
+              onChange={(e) => setRedeemInput(e.target.value.toUpperCase())}
+              placeholder="NEO-XXXX-XXXX-XXXX"
+              className="flex-1 h-11 px-3 border border-[#dcdcdc] text-[14px] font-mono tracking-wider outline-none focus:border-[var(--nc-accent)]"
+            />
+            <button
+              onClick={submitRedeem}
+              disabled={redeemBusy || !redeemInput.trim()}
+              className="h-11 px-6 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] disabled:opacity-50 text-white text-[13px] uppercase tracking-wider inline-flex items-center justify-center gap-2"
+            >
+              {redeemBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+              Redeem
+            </button>
+          </div>
+          <p className="px-4 pb-4 text-[11px] text-[#888]">
+            Codes are published on our Telegram channel. Each code works only once and credits your balance instantly.
+          </p>
+        </section>
+
 
         {/* Transactions */}
         {transactions.length > 0 && (
