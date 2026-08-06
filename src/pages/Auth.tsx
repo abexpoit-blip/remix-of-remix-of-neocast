@@ -59,10 +59,10 @@ const Auth = () => {
 
   useEffect(() => {
     setSavedAccounts(getSavedAccounts());
-    const prefill = sessionStorage.getItem("cruzercc.prefillEmail");
+    const prefill = sessionStorage.getItem("neocast.prefillEmail");
     if (prefill) {
       setUsername(prefill);
-      sessionStorage.removeItem("cruzercc.prefillEmail");
+      sessionStorage.removeItem("neocast.prefillEmail");
     }
   }, []);
 
@@ -107,7 +107,7 @@ const Auth = () => {
     } catch (err: unknown) {
       if (err instanceof ApiError) {
         if (err.status === 403 && err.message === "Use admin login") {
-          sessionStorage.setItem("cruzercc.prefillAdminEmail", username.trim());
+          sessionStorage.setItem("neocast.prefillAdminEmail", username.trim());
           toast.error("Administrators only. Redirecting…");
           nav("/crzr-x9k2-panel", { replace: true });
           return;

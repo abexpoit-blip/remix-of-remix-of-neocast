@@ -3,7 +3,7 @@
  * No Supabase, no Lovable Cloud. Pure VPS.
  */
 
-export const AUTH_CHANGED_EVENT = "cruzercc-auth-changed";
+export const AUTH_CHANGED_EVENT = "neocast-auth-changed";
 
 export function resolveApiBase(): string {
   const envBase = import.meta.env.VITE_API_BASE as string | undefined;
@@ -13,12 +13,12 @@ export function resolveApiBase(): string {
     const { hostname, origin } = window.location;
     const host = hostname.toLowerCase();
 
-    if (host === "cruzercc.shop" || host === "www.cruzercc.shop") {
+    if (host === "neocast.cc" || host === "www.neocast.cc") {
       return `${origin.replace(/\/+$/, "")}/api`;
     }
 
     if (host.endsWith("lovable.app") || host.endsWith("lovableproject.com")) {
-      return "https://cruzercc.shop/api";
+      return "https://neocast.cc/api";
     }
 
     return `${origin.replace(/\/+$/, "")}/api`;
@@ -34,7 +34,7 @@ export function buildApiUrl(path: string): string {
 }
 
 // ── Token helpers ──
-const TOKEN_KEY = "cruzercc.token";
+const TOKEN_KEY = "neocast.token";
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
@@ -135,7 +135,7 @@ export const api = {
 
 // ── Typed API helpers ──
 // Auth + Profile now backed by Lovable Cloud (Supabase). Vendor username-based
-// login is preserved by mapping username -> synthetic email <username>@cruzercc.shop.
+// login is preserved by mapping username -> synthetic email <username>@neocast.cc.
 import { supabase } from "@/integrations/supabase/client";
 
 export interface AuthResult {

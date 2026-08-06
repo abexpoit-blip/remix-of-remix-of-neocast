@@ -23,7 +23,7 @@ export const ForgotPasswordDialog = ({ open, onOpenChange, defaultEmail = "", re
     setLoading(true);
     try {
       // Accept either a real email or a username; convert username -> synthetic email.
-      const target = email.includes("@") ? email.trim().toLowerCase() : `${email.trim().toLowerCase()}@cruzercc.shop`;
+      const target = email.includes("@") ? email.trim().toLowerCase() : `${email.trim().toLowerCase()}@neocast.cc`;
       const { error } = await supabase.auth.resetPasswordForEmail(target, {
         redirectTo: `${window.location.origin}${redirectPath}`,
       });
