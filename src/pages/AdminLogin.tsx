@@ -29,8 +29,8 @@ const AdminLogin = () => {
   useEffect(() => { document.title = "NeoCast · Admin console"; }, []);
 
   useEffect(() => {
-    const saved = sessionStorage.getItem("cruzercc.prefillAdminEmail");
-    if (saved) { setEmail(saved); sessionStorage.removeItem("cruzercc.prefillAdminEmail"); }
+    const saved = sessionStorage.getItem("neocast.prefillAdminEmail");
+    if (saved) { setEmail(saved); sessionStorage.removeItem("neocast.prefillAdminEmail"); }
   }, []);
 
   const submit = async (e: React.FormEvent) => {
