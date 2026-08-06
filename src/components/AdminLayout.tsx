@@ -1,7 +1,7 @@
 import { ReactNode, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { NavLink, useLocation } from "react-router-dom";
-import { Shield, ShieldCheck, LayoutDashboard, CreditCard, KeyRound, Settings as SettingsIcon, Menu, X, Banknote, DollarSign, LayoutGrid, Download, Megaphone } from "lucide-react";
+import { Shield, ShieldCheck, LayoutDashboard, CreditCard, KeyRound, Settings as SettingsIcon, Menu, X, Banknote, DollarSign, LayoutGrid, Download, Megaphone, Gift } from "lucide-react";
 import { useAuth, isSuperAdminRole } from "@/hooks/useAuth";
 
 interface Item { to: string; label: string; icon: React.ComponentType<{ className?: string }>; superOnly?: boolean; }
