@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { newsApi, announcementsApi, ordersApi, type VpsOrder } from "@/lib/api";
+import { listLatestStock, listAnnouncements, listMyOrders, type StockUpdate, type Announcement, type Order } from "@/lib/store";
 import { AnnouncementTicker } from "@/components/shop/AnnouncementTicker";
 import { AnnouncementNoticeGrid } from "@/components/shop/AnnouncementNoticeGrid";
 import { AppShell } from "@/components/AppShell";
@@ -20,20 +20,22 @@ import {
  * Live stock feed + announcements + rules + contact.
  */
 
+const LIVE_STOCK_LIMIT = 5;
+
 const Index = () => {
   const { profile } = useAuth();
   const site = useSiteSettings();
-  const [news, setNews] = useState<{ id: string; label: string; count: number }[]>([]);
-  const [anns, setAnns] = useState<{ id: string; title: string; body: string; kind?: string; created_at?: string }[]>([]);
-  const [orders, setOrders] = useState<VpsOrder[]>([]);
+  const [news, setNews] = useState<StockUpdate[]>([]);
+  const [anns, setAnns] = useState<Announcement[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadNews = useCallback(async () => {
     try {
-      const res = await newsApi.list();
-      setNews((res.updates ?? []) as typeof news);
+      const rows = await listLatestStock(LIVE_STOCK_LIMIT);
+      setNews(rows);
       setUpdatedAt(new Date());
     } catch { /* ignore */ }
   }, []);
@@ -42,13 +44,11 @@ const Index = () => {
     (async () => {
       const [, a, o] = await Promise.allSettled([
         loadNews(),
-        announcementsApi.list(),
-        ordersApi.mine(),
+        listAnnouncements(),
+        listMyOrders(),
       ]);
-      if (a.status === "fulfilled" && a.value)
-        setAnns((a.value.announcements ?? []) as typeof anns);
-      if (o.status === "fulfilled" && o.value)
-        setOrders((o.value.orders ?? []) as VpsOrder[]);
+      if (a.status === "fulfilled") setAnns(a.value);
+      if (o.status === "fulfilled") setOrders(o.value);
       setLoading(false);
     })();
   }, [loadNews]);
@@ -60,10 +60,11 @@ const Index = () => {
 
   const totalStock = news.reduce((s, n) => s + (Number(n.count) || 0), 0);
   const totalSpend = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
-  const itemsBought = orders.reduce((s, o) => s + (o.items?.length ?? 0), 0);
+  const itemsBought = orders.reduce((s, o) => s + (o.order_items?.length ?? 0), 0);
   const lastOrder = orders[0];
   const topFeeds = [...news].sort((a, b) => (Number(b.count) || 0) - (Number(a.count) || 0)).slice(0, 5);
   const peakFeed = topFeeds[0]?.count ? Number(topFeeds[0].count) : 1;
+
 
   return (
     <AppShell>

@@ -265,6 +265,31 @@ header, footer, .nc-skin { transition: background-color .35s ease, border-color 
   color: hsl(4 90% 58%) !important;
 }
 
+/* Admin UI: every button renders in the red theme */
+.admin-red-theme button:not([data-nored]),
+.admin-red-theme [role="button"]:not([data-nored]),
+.admin-red-theme a[data-admin-btn] {
+  --tw-gradient-from: hsl(4 90% 58%);
+  --tw-gradient-to: hsl(0 84% 64%);
+}
+.admin-red-theme button:not([data-nored]):not([role="tab"]):not([role="checkbox"]):not([role="switch"]):not([role="combobox"]):not([data-radix-collection-item]) {
+  background-color: hsl(4 90% 58%) !important;
+  background-image: none !important;
+  border-color: hsl(4 90% 50%) !important;
+  color: #fff !important;
+}
+.admin-red-theme button:not([data-nored]):not([role="tab"]):not([role="checkbox"]):not([role="switch"]):not([role="combobox"]):not([data-radix-collection-item]):hover {
+  background-color: hsl(0 84% 64%) !important;
+}
+.admin-red-theme button:not([data-nored]):not([role="tab"]) svg,
+.admin-red-theme button:not([data-nored]):not([role="tab"]) span {
+  color: inherit !important;
+}
+.admin-red-theme button:disabled {
+  opacity: 0.6;
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   header, footer, .nc-skin { transition: none; }
 }
