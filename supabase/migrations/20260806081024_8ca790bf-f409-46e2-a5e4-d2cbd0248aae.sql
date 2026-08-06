@@ -1,0 +1,1 @@
+DELETE FROM public.announcements WHERE title = 'Test notice';
