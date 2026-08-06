@@ -239,8 +239,35 @@
 
 header, footer, .nc-skin { transition: background-color .35s ease, border-color .35s ease; }
 
+/* ===== Admin-only red theme ===== */
+.admin-red-theme {
+  --primary: 4 90% 58%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 0 84% 64%;
+  --gold: 4 90% 58%;
+  --gold-foreground: 0 0% 100%;
+  --accent: 0 84% 64%;
+  --accent-foreground: 0 0% 100%;
+  --ring: 4 90% 58%;
+  --gradient-primary: linear-gradient(135deg, hsl(4 90% 58%), hsl(0 84% 64%));
+  --gradient-glow: radial-gradient(circle at 50% 0%, hsl(4 90% 58% / 0.18), transparent 65%);
+  --gradient-card: linear-gradient(155deg, hsl(0 0% 100%), hsl(0 40% 98%));
+  --shadow-card: 0 1px 3px hsl(4 60% 30% / 0.06), 0 1px 2px hsl(4 60% 30% / 0.04);
+  --shadow-elev: 0 8px 24px -8px hsl(4 60% 30% / 0.18);
+}
+.admin-red-theme .neon-text,
+.admin-red-theme .gold-text,
+.admin-red-theme .gold-text-strong,
+.admin-red-theme .primary-text-strong,
+.admin-red-theme .logo-glow-text,
+.admin-red-theme .auth-brand-tag {
+  -webkit-text-fill-color: hsl(4 90% 58%) !important;
+  color: hsl(4 90% 58%) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   header, footer, .nc-skin { transition: none; }
 }
+
 
 
