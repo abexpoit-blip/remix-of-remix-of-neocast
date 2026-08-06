@@ -969,3 +969,64 @@ export const downloadTextFile = (filename: string, content: string) => {
   a.click();
   URL.revokeObjectURL(url);
 };
+
+/* ---------------- redeem codes ---------------- */
+
+export interface RedeemCode {
+  id: string;
+  code: string;
+  amount: number;
+  note: string | null;
+  used_by: string | null;
+  used_at: string | null;
+  active: boolean;
+  created_at: string;
+}
+
+export const generateRedeemCodeString = (prefix = "NEO") => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let out = "";
+  for (let i = 0; i < 12; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+    if (i === 3 || i === 7) out += "-";
+  }
+  return `${prefix}-${out}`;
+};
+
+export const adminListRedeemCodes = async (): Promise<RedeemCode[]> => {
+  const { data, error } = await supabase
+    .from("redeem_codes")
+    .select("id, code, amount, note, used_by, used_at, active, created_at")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error) throw error;
+  return (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) }));
+};
+
+export const adminCreateRedeemCode = async (input: { code: string; amount: number; note?: string }) => {
+  const { error } = await supabase.from("redeem_codes").insert({
+    code: input.code.trim().toUpperCase(),
+    amount: input.amount,
+    note: input.note?.trim() || null,
+  });
+  if (error) throw error;
+};
+
+export const adminDeleteRedeemCode = async (id: string) => {
+  const { error } = await supabase.from("redeem_codes").delete().eq("id", id);
+  if (error) throw error;
+};
+
+export const redeemCode = async (code: string): Promise<number> => {
+  const { data, error } = await supabase.rpc("redeem_code", { _code: code.trim() });
+  if (error) throw error;
+  return Number(data ?? 0);
+};
+
+export const translateRedeemError = (msg: string) => {
+  if (msg.includes("code_already_used")) return "This code has already been redeemed.";
+  if (msg.includes("code_disabled")) return "This code is no longer valid.";
+  if (msg.includes("invalid_code")) return "Invalid redeem code.";
+  if (msg.includes("not_authenticated")) return "Please sign in first.";
+  return msg;
+};
