@@ -27,7 +27,7 @@ const formatCountdown = (seconds: number) => {
 };
 
 const Recharge = () => {
-  const { profile } = useAuth();
+  const { profile, refresh } = useAuth();
   const settings = useSiteSettings();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -38,6 +38,8 @@ const Recharge = () => {
   const [history, setHistory] = useState<Deposit[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [redeemInput, setRedeemInput] = useState("");
+  const [redeemBusy, setRedeemBusy] = useState(false);
 
   const [activeInvoice, setActiveInvoiceRaw] = useState<{
     deposit_id: string; wallet_address: string; crypto_amount: string;
