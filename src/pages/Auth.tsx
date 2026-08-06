@@ -129,6 +129,23 @@ const Auth = () => {
           </div>
         </div>
 
+        {notices.length > 0 && (
+          <div className="mb-5 rounded-lg border border-[var(--nc-accent-soft)]/30 bg-white/[0.04] backdrop-blur-sm overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-white/10 text-[10px] uppercase tracking-[0.2em] text-[var(--nc-accent-soft)] font-semibold">
+              <Megaphone className="h-3.5 w-3.5" /> Notice board
+            </div>
+            <ul className="divide-y divide-white/5 max-h-44 overflow-y-auto">
+              {notices.map((n) => (
+                <li key={n.id} className="px-3 py-2">
+                  <div className="text-[12.5px] font-semibold text-white/90">{n.title}</div>
+                  {n.body ? <div className="text-[11.5px] text-white/55 mt-0.5 leading-relaxed">{n.body}</div> : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+
 
         {savedAccounts.length > 0 && mode === "login" && (
           <div className="mb-5">
