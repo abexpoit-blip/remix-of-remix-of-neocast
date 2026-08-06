@@ -67,9 +67,17 @@ for (const assignedRole of roles) {
     headers: { ...headers, Prefer: 'resolution=ignore-duplicates' },
     body: JSON.stringify({ user_id: user.id, role: assignedRole }),
   });
-  if (!response.ok) throw new Error(`Could not grant ${assignedRole}: ${await responseError(response)}`);
+  if (!response.ok) {
+    const message = await responseError(response);
+    if (assignedRole === 'superadmin' && /app_role/.test(message)) {
+      console.warn(`  superadmin role skipped: database does not know it yet.\n  run: bash selfhost/fix-superadmin.sh   then re-run this command.`);
+      continue;
+    }
+    throw new Error(`Could not grant ${assignedRole}: ${message}`);
+  }
   console.log(`  ${assignedRole} role: ok`);
 }
+
 
 // Verify the exact password against the same public auth endpoint used by the app.
 const verify = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
