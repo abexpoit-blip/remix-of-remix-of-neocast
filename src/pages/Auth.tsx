@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { authApi, setToken, ApiError } from "@/lib/api";
 import { toast } from "sonner";
-import { RefreshCw, X, Loader2, User as UserIcon, Lock, ShieldCheck, Megaphone } from "lucide-react";
+import { RefreshCw, X, Loader2, User as UserIcon, Lock, ShieldCheck } from "lucide-react";
 import { listAnnouncements, type Announcement } from "@/lib/store";
+import { AuthNoticeBoard } from "@/components/shop/AuthNoticeBoard";
+
 
 import { getSavedAccounts, removeSavedAccount, type SavedAccount } from "@/lib/accountSwitcher";
 import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";
