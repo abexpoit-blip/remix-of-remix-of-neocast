@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import Seo from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { telegramUrl, telegramLabel } from "@/lib/telegram";
 import { ArrowRight } from "lucide-react";
 
 /**
@@ -9,6 +11,7 @@ import { ArrowRight } from "lucide-react";
  */
 export default function Landing() {
   const { user } = useAuth();
+  const site = useSiteSettings();
   const primaryHref = user ? "/shop" : "/auth";
   const primaryLabel = user ? "Enter the shop" : "Create account";
 
@@ -114,6 +117,18 @@ export default function Landing() {
       <footer className="border-t border-[#e6e6e6] bg-[#1f2d3d] text-white/70">
         <div className="mx-auto max-w-[1200px] px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-3 text-xs">
           <div>© {new Date().getFullYear()} NeoCast. All rights reserved.</div>
+          <div className="flex items-center gap-4">
+            {site.support_telegram ? (
+              <a href={telegramUrl(site.support_telegram)} target="_blank" rel="noreferrer" className="hover:text-white transition font-mono">
+                {telegramLabel(site.support_telegram)}
+              </a>
+            ) : null}
+            {site.support_telegram_channel ? (
+              <a href={telegramUrl(site.support_telegram_channel)} target="_blank" rel="noreferrer" className="hover:text-white transition font-mono">
+                {telegramLabel(site.support_telegram_channel)}
+              </a>
+            ) : null}
+          </div>
         </div>
       </footer>
     </div>
