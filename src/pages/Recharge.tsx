@@ -470,6 +470,16 @@ const Recharge = () => {
                     <span>Total to pay</span>
                     <span className="font-mono font-semibold text-[var(--nc-accent)]">${(amtNum * 1.02).toFixed(2)}</span>
                   </div>
+                  <div className="flex items-center justify-between border-t border-[#eee] pt-1.5 mt-1.5">
+                    <span className="font-semibold text-[#1f2d3d]">Added to balance (after fee)</span>
+                    <span className="font-mono font-semibold text-[#2e7d32]">+${amtNum.toFixed(2)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Balance after deposit</span>
+                    <span className="font-mono font-semibold text-[#1f2d3d]">
+                      ${(Number(profile?.balance ?? 0) + amtNum).toFixed(2)}
+                    </span>
+                  </div>
                   <div className="flex items-center justify-between">
                     <span>Current balance</span>
                     <span className="font-mono font-semibold text-[#1f2d3d]">${Number(profile?.balance ?? 0).toFixed(2)}</span>
