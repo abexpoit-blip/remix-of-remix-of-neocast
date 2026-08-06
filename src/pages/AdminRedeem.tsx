@@ -149,6 +149,9 @@ const AdminRedeem = () => {
                       ${r.amount.toFixed(2)}
                       {r.note ? ` · ${r.note}` : ""} · {new Date(r.created_at).toLocaleDateString()}
                     </p>
+                    <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-primary/40 text-primary-glow">
+                      Unused
+                    </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     <button
@@ -183,8 +186,13 @@ const AdminRedeem = () => {
                   <div className="min-w-0">
                     <p className="font-mono text-sm text-muted-foreground line-through truncate">{r.code}</p>
                     <p className="text-[11px] text-muted-foreground">
-                      ${r.amount.toFixed(2)} · redeemed {r.used_at ? new Date(r.used_at).toLocaleString() : ""}
+                      ${r.amount.toFixed(2)} · by{" "}
+                      <span className="text-foreground font-medium">{r.used_by_username ?? "unknown"}</span> ·{" "}
+                      {r.used_at ? new Date(r.used_at).toLocaleString() : ""}
                     </p>
+                    <span className="mt-1 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded border border-[#2fb344]/50 text-[#2fb344]">
+                      Used
+                    </span>
                   </div>
                   <CheckCircle2 className="h-4 w-4 text-[#2fb344] shrink-0" />
                 </div>

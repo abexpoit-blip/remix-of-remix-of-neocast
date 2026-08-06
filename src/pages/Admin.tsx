@@ -614,10 +614,24 @@ const Admin = () => {
                   <span className="text-xs text-muted-foreground">
                     Showing {(userPage - 1) * USERS_PER_PAGE + 1}–{Math.min(userPage * USERS_PER_PAGE, users.length)} of {users.length}
                   </span>
-                  <div className="flex items-center gap-1">
-                    <Button size="sm" variant="outline" className="h-7 px-2" disabled={userPage === 1} onClick={() => setUserPage(p => Math.max(1, p - 1))}>‹</Button>
-                    <span className="text-xs text-muted-foreground px-2">{userPage} / {userTotalPages}</span>
-                    <Button size="sm" variant="outline" className="h-7 px-2" disabled={userPage === userTotalPages} onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))}>›</Button>
+                  <div className="flex items-center gap-1 flex-wrap">
+                    <Button size="sm" variant="outline" className="h-7 px-2" disabled={userPage === 1} onClick={() => setUserPage(p => Math.max(1, p - 1))}>‹ Prev</Button>
+                    {adminPageNumbers(userPage, userTotalPages).map((n, i) =>
+                      n === "…" ? (
+                        <span key={`e${i}`} className="px-1 text-xs text-muted-foreground">…</span>
+                      ) : (
+                        <Button
+                          key={n}
+                          size="sm"
+                          variant={n === userPage ? "default" : "outline"}
+                          className="h-7 min-w-7 px-2 text-xs"
+                          onClick={() => setUserPage(n)}
+                        >
+                          {n}
+                        </Button>
+                      ),
+                    )}
+                    <Button size="sm" variant="outline" className="h-7 px-2" disabled={userPage === userTotalPages} onClick={() => setUserPage(p => Math.min(userTotalPages, p + 1))}>Next ›</Button>
                   </div>
                 </div>
               )}
@@ -953,3 +967,15 @@ const Mini = ({ label, value, highlight }: { label: string; value: string; highl
 );
 
 export default Admin;
+
+function adminPageNumbers(page: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const out: (number | "…")[] = [1];
+  const start = Math.max(2, page - 1);
+  const end = Math.min(total - 1, page + 1);
+  if (start > 2) out.push("…");
+  for (let i = start; i <= end; i++) out.push(i);
+  if (end < total - 1) out.push("…");
+  out.push(total);
+  return out;
+}

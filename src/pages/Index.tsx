@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import Seo from "@/components/Seo";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { telegramUrl, telegramLabel } from "@/lib/telegram";
 import {
   Activity, Megaphone, ShieldCheck, MessageCircle, ArrowRight,
   Layers, RefreshCw, Send, Wallet, ShoppingBag, TrendingUp, Clock,
@@ -20,6 +22,7 @@ import {
 
 const Index = () => {
   const { profile } = useAuth();
+  const site = useSiteSettings();
   const [news, setNews] = useState<{ id: string; label: string; count: number }[]>([]);
   const [anns, setAnns] = useState<{ id: string; title: string; body: string; kind?: string; created_at?: string }[]>([]);
   const [orders, setOrders] = useState<VpsOrder[]>([]);
@@ -251,9 +254,40 @@ const Index = () => {
             <p className="rounded-lg bg-[#fbf1f3] border border-[#e8ccd3] px-3.5 py-2.5 text-[var(--nc-accent)]">
               Beware of fake NeoCast support. We never message you first.
             </p>
-            <div className="rounded-lg border border-dashed border-[#e0e0e0] px-3.5 py-3 text-[12.5px] text-[#777]">
-              Official contact channels will be published here soon.
-            </div>
+            {site.support_telegram || site.support_telegram_channel ? (
+              <div className="space-y-2">
+                {site.support_telegram ? (
+                  <a
+                    href={telegramUrl(site.support_telegram)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-[#e0e0e0] px-3.5 py-2.5 hover:border-[var(--nc-accent)] transition"
+                  >
+                    <span className="flex items-center gap-2 text-[12.5px] text-[#666]">
+                      <Send className="h-3.5 w-3.5 text-[var(--nc-accent)]" /> Support
+                    </span>
+                    <span className="font-mono text-[12.5px] text-[var(--nc-accent)]">{telegramLabel(site.support_telegram)}</span>
+                  </a>
+                ) : null}
+                {site.support_telegram_channel ? (
+                  <a
+                    href={telegramUrl(site.support_telegram_channel)}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-[#e0e0e0] px-3.5 py-2.5 hover:border-[var(--nc-accent)] transition"
+                  >
+                    <span className="flex items-center gap-2 text-[12.5px] text-[#666]">
+                      <Megaphone className="h-3.5 w-3.5 text-[var(--nc-accent)]" /> Channel
+                    </span>
+                    <span className="font-mono text-[12.5px] text-[var(--nc-accent)]">{telegramLabel(site.support_telegram_channel)}</span>
+                  </a>
+                ) : null}
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-[#e0e0e0] px-3.5 py-3 text-[12.5px] text-[#777]">
+                Official contact channels will be published here soon.
+              </div>
+            )}
             <p className="text-[12.5px] text-[var(--nc-accent)] font-semibold">Sellers are welcome to join the platform.</p>
           </div>
         </Panel>

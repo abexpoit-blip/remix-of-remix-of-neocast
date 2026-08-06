@@ -981,6 +981,7 @@ export interface RedeemCode {
   used_at: string | null;
   active: boolean;
   created_at: string;
+  used_by_username?: string | null;
 }
 
 export const generateRedeemCodeString = (prefix = "NEO") => {
@@ -1000,7 +1001,14 @@ export const adminListRedeemCodes = async (): Promise<RedeemCode[]> => {
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw error;
-  return (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) }));
+  const rows = (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) }));
+
+  const userIds = [...new Set(rows.map((r) => r.used_by).filter(Boolean) as string[])];
+  if (userIds.length === 0) return rows;
+
+  const { data: profs } = await supabase.from("profiles").select("id, username, email").in("id", userIds);
+  const nameById = new Map((profs ?? []).map((p) => [p.id, p.username ?? p.email ?? "unknown"]));
+  return rows.map((r) => ({ ...r, used_by_username: r.used_by ? nameById.get(r.used_by) ?? "unknown" : null }));
 };
 
 export const adminCreateRedeemCode = async (input: { code: string; amount: number; note?: string }) => {
@@ -1025,7 +1033,7 @@ export const redeemCode = async (code: string): Promise<number> => {
 
 export const translateRedeemError = (msg: string) => {
   if (msg.includes("code_already_used")) return "This code has already been redeemed.";
-  if (msg.includes("code_disabled")) return "This code is no longer valid.";
+  if (msg.includes("code_disabled")) return "This code has already been used or is no longer valid.";
   if (msg.includes("invalid_code")) return "Invalid redeem code.";
   if (msg.includes("not_authenticated")) return "Please sign in first.";
   return msg;

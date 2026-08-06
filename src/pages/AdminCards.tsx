@@ -10,7 +10,7 @@ import { CreditCard, Trash2, Search, EyeOff, Eye, DollarSign, Check, X, ChevronL
 import { toast } from "sonner";
 
 type Card = AdminCardRow;
-const PER_PAGE = 50;
+const PER_PAGE = 25;
 
 const AdminCards = () => {
   const [allCards, setAllCards] = useState<Card[]>([]);

@@ -8,6 +8,8 @@ import { ForgotPasswordDialog } from "@/components/ForgotPasswordDialog";
 import Seo from "@/components/Seo";
 import { useAuth } from "@/hooks/useAuth";
 import { ScorpionAuthShell } from "@/components/ScorpionAuthShell";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { telegramUrl, telegramLabel } from "@/lib/telegram";
 
 /** Simple human check: only + and - with a non-negative answer. */
 function makeChallenge() {
@@ -21,6 +23,7 @@ function makeChallenge() {
 
 
 const Auth = () => {
+  const site = useSiteSettings();
   const nav = useNavigate();
   const loc = useLocation();
   const { refresh } = useAuth();
@@ -292,6 +295,22 @@ const Auth = () => {
               <>Already have an account? <span className="text-[var(--nc-accent-soft)] font-semibold">Sign in</span></>
             )}
           </button>
+          {site.support_telegram || site.support_telegram_channel ? (
+            <p className="mt-3 text-[11px] text-white/40">
+              Need help?{" "}
+              {site.support_telegram ? (
+                <a href={telegramUrl(site.support_telegram)} target="_blank" rel="noreferrer" className="text-[var(--nc-accent-soft)] hover:underline font-mono">
+                  {telegramLabel(site.support_telegram)}
+                </a>
+              ) : null}
+              {site.support_telegram && site.support_telegram_channel ? " · " : ""}
+              {site.support_telegram_channel ? (
+                <a href={telegramUrl(site.support_telegram_channel)} target="_blank" rel="noreferrer" className="text-[var(--nc-accent-soft)] hover:underline font-mono">
+                  {telegramLabel(site.support_telegram_channel)}
+                </a>
+              ) : null}
+            </p>
+          ) : null}
         </div>
       </ScorpionAuthShell>
 
