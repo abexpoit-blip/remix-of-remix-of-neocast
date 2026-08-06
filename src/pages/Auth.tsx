@@ -181,7 +181,7 @@ const Auth = () => {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
-              placeholder="Username"
+              placeholder={mode === "login" ? "Username or email" : "Username"}
               className="w-full pl-11 pr-3 py-3 rounded-lg bg-white/[0.04] border border-white/10 text-white text-sm placeholder-white/35 focus:outline-none focus:border-[var(--nc-accent-soft)]/60 focus:bg-white/[0.07] focus:shadow-[0_0_0_3px_rgba(var(--nc-accent-rgb),0.12)] transition-all backdrop-blur-sm"
             />
           </div>
