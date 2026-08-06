@@ -1033,7 +1033,7 @@ export const redeemCode = async (code: string): Promise<number> => {
 
 export const translateRedeemError = (msg: string) => {
   if (msg.includes("code_already_used")) return "This code has already been redeemed.";
-  if (msg.includes("code_disabled")) return "This code is no longer valid.";
+  if (msg.includes("code_disabled")) return "This code has already been used or is no longer valid.";
   if (msg.includes("invalid_code")) return "Invalid redeem code.";
   if (msg.includes("not_authenticated")) return "Please sign in first.";
   return msg;
