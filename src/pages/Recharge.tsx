@@ -503,6 +503,33 @@ const Recharge = () => {
           </section>
         )}
 
+        {/* Redeem code */}
+        <section className="bg-white border border-[#e6e6e6] rounded-lg overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
+          <div className="px-4 h-11 flex items-center gap-2 bg-[var(--nc-ink-2)] text-[13px] text-white/85 uppercase tracking-wider border-b-2 border-[var(--nc-accent)]">
+            <Gift className="h-4 w-4 text-[var(--nc-accent-soft)]" /> Redeem a code
+          </div>
+          <div className="p-4 flex flex-col sm:flex-row gap-3 sm:items-center">
+            <input
+              value={redeemInput}
+              onChange={(e) => setRedeemInput(e.target.value.toUpperCase())}
+              placeholder="NEO-XXXX-XXXX-XXXX"
+              className="flex-1 h-11 px-3 border border-[#dcdcdc] text-[14px] font-mono tracking-wider outline-none focus:border-[var(--nc-accent)]"
+            />
+            <button
+              onClick={submitRedeem}
+              disabled={redeemBusy || !redeemInput.trim()}
+              className="h-11 px-6 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] disabled:opacity-50 text-white text-[13px] uppercase tracking-wider inline-flex items-center justify-center gap-2"
+            >
+              {redeemBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Gift className="h-4 w-4" />}
+              Redeem
+            </button>
+          </div>
+          <p className="px-4 pb-4 text-[11px] text-[#888]">
+            Codes are published on our Telegram channel. Each code works only once and credits your balance instantly.
+          </p>
+        </section>
+
+
         {/* Transactions */}
         {transactions.length > 0 && (
           <section className="bg-white border border-[#e6e6e6] rounded-lg overflow-hidden shadow-[0_2px_12px_rgba(0,0,0,0.06)]">
