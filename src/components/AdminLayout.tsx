@@ -13,6 +13,7 @@ const items: Item[] = [
   { to: "/admin/cards", label: "Card moderation", icon: CreditCard },
   { to: "/admin/announcements", label: "Announcements", icon: Megaphone },
   { to: "/admin/payments", label: "Payments · Deposits", icon: DollarSign },
+  { to: "/admin/redeem", label: "Redeem codes", icon: Gift },
   { to: "/admin/export", label: "Card export", icon: Download, superOnly: true },
 
   { to: "/admin/payment-gateway", label: "Plisio Payment Gateway", icon: Banknote, superOnly: true },
