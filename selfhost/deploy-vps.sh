@@ -67,27 +67,40 @@ echo "==> 3/5 Installing deps + build"
 command -v bun >/dev/null || { curl -fsSL https://bun.sh/install | bash; export BUN_INSTALL="$HOME/.bun"; export PATH="$BUN_INSTALL/bin:$PATH"; }
 export PATH="$HOME/.bun/bin:$PATH"
 bun install
+
+# Keep previously built asset chunks so browsers/CDNs still holding the old
+# HTML don't hit 500 ENOENT on hashed files that this build replaced.
+ASSET_CACHE="$APP_DIR/.asset-cache"
+mkdir -p "$ASSET_CACHE"
+if [ -d "$APP_DIR/.output/public/assets" ]; then
+  cp -an "$APP_DIR/.output/public/assets/." "$ASSET_CACHE/" 2>/dev/null || true
+fi
+
 rm -rf "$APP_DIR/.output"
 bun run build
 if [ ! -f "$APP_DIR/.output/public/favicon.svg" ]; then
   mkdir -p "$APP_DIR/.output/public"
   cp -f "$APP_DIR/public/favicon.svg" "$APP_DIR/.output/public/favicon.svg"
 fi
+mkdir -p "$APP_DIR/.output/public/assets"
+cp -an "$APP_DIR/.output/public/assets/." "$ASSET_CACHE/" 2>/dev/null || true
+cp -an "$ASSET_CACHE/." "$APP_DIR/.output/public/assets/" 2>/dev/null || true
+# Trim the cache so it can't grow forever (keep newest 800 files).
+if [ "$(ls -1 "$ASSET_CACHE" | wc -l)" -gt 800 ]; then
+  ls -1t "$ASSET_CACHE" | tail -n +801 | while IFS= read -r f; do rm -f "$ASSET_CACHE/$f"; done
+fi
 
 echo "==> 4/5 Restarting PM2 app ($PM2_NAME on port $APP_PORT)"
 command -v pm2 >/dev/null || npm i -g pm2
-# Load .env into this shell so pm2 --update-env hands the vars to the app.
+# Load .env into this shell too; the start script also reads it via node --env-file.
 set -a; . "$APP_DIR/.env"; set +a
-if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
-  pm2 restart "$PM2_NAME" --update-env
-else
-  pm2 start "bun run start" --name "$PM2_NAME" --cwd "$APP_DIR"
-fi
+pm2 delete "$PM2_NAME" >/dev/null 2>&1 || true
+pm2 start "bun run start" --name "$PM2_NAME" --cwd "$APP_DIR" --update-env
 pm2 save
 
-# Fail loudly if nginx is still serving a stale process/deployment.
+# Fail loudly if the app isn't answering through nginx.
 for _ in $(seq 1 20); do
-  LIVE_HTML=$(curl -fsS https://neocast.cc/crzr-x9k2-panel || true)
+  LIVE_HTML=$(curl -fsS https://neocast.cc/crzr-x9k2-panel | tr -d '\0' || true)
   if printf '%s' "$LIVE_HTML" | grep -q '/assets/'; then break; fi
   sleep 1
 done
@@ -95,6 +108,15 @@ if ! printf '%s' "${LIVE_HTML:-}" | grep -q '/assets/'; then
   echo "!! App did not become ready through nginx"
   exit 1
 fi
+
+echo "    Verifying Supabase env inside the running app"
+if pm2 env "$(pm2 id "$PM2_NAME" | tr -dc '0-9')" 2>/dev/null | grep -q '^SUPABASE_URL='; then
+  echo "    SUPABASE_URL present in process env"
+else
+  echo "!! SUPABASE_URL missing from process env — check $APP_DIR/.env"
+  exit 1
+fi
+
 
 echo "==> 5/5 Status"
 pm2 logs "$PM2_NAME" --lines 25 --nostream || true
