@@ -981,6 +981,7 @@ export interface RedeemCode {
   used_at: string | null;
   active: boolean;
   created_at: string;
+  used_by_username?: string | null;
 }
 
 export const generateRedeemCodeString = (prefix = "NEO") => {
@@ -1000,7 +1001,14 @@ export const adminListRedeemCodes = async (): Promise<RedeemCode[]> => {
     .order("created_at", { ascending: false })
     .limit(500);
   if (error) throw error;
-  return (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) }));
+  const rows = (data ?? []).map((r) => ({ ...r, amount: Number(r.amount) }));
+
+  const userIds = [...new Set(rows.map((r) => r.used_by).filter(Boolean) as string[])];
+  if (userIds.length === 0) return rows;
+
+  const { data: profs } = await supabase.from("profiles").select("id, username, email").in("id", userIds);
+  const nameById = new Map((profs ?? []).map((p) => [p.id, p.username ?? p.email ?? "unknown"]));
+  return rows.map((r) => ({ ...r, used_by_username: r.used_by ? nameById.get(r.used_by) ?? "unknown" : null }));
 };
 
 export const adminCreateRedeemCode = async (input: { code: string; amount: number; note?: string }) => {
