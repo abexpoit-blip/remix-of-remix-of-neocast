@@ -47,6 +47,13 @@ const Auth = () => {
   const { a, b, op, expected } = challenge;
   const captchaOk = captcha.trim() !== "" && Number(captcha) === expected;
 
+  const [notices, setNotices] = useState<Announcement[]>([]);
+
+  useEffect(() => {
+    listAnnouncements()
+      .then((rows) => setNotices(rows.slice(0, 5)))
+      .catch(() => setNotices([]));
+  }, []);
 
   useEffect(() => {
     setSavedAccounts(getSavedAccounts());
@@ -56,6 +63,7 @@ const Auth = () => {
       sessionStorage.removeItem("cruzercc.prefillEmail");
     }
   }, []);
+
 
   const pickAccount = (acc: SavedAccount) => {
     setUsername(acc.email);
