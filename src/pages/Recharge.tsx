@@ -230,7 +230,7 @@ const Recharge = () => {
       toast.success(`$${credited.toFixed(2)} added to your balance`);
       setRedeemInput("");
       await refresh();
-      void loadData();
+      void loadTransactions();
     } catch (e) {
       toast.error(translateRedeemError(e instanceof Error ? e.message : "Redeem failed"));
     } finally {
