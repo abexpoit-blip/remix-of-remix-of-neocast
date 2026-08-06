@@ -69,7 +69,7 @@ export const AdminLayout = ({ children, title }: { children: ReactNode; title: s
 
   return (
     <AppShell>
-      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+      <div className="admin-red-theme flex flex-col lg:flex-row gap-6 lg:gap-8">
         {/* Mobile sidebar toggle */}
         <div className="lg:hidden flex items-center gap-3">
           <button
