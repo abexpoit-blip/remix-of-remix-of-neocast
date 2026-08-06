@@ -96,6 +96,7 @@ command -v pm2 >/dev/null || npm i -g pm2
 set -a; . "$APP_DIR/.env"; set +a
 pm2 delete "$PM2_NAME" >/dev/null 2>&1 || true
 pm2 start "bun run start" --name "$PM2_NAME" --cwd "$APP_DIR" --update-env
+pm2 flush "$PM2_NAME" >/dev/null 2>&1 || true
 pm2 save
 
 # Fail loudly if the app isn't answering through nginx.
@@ -109,13 +110,20 @@ if ! printf '%s' "${LIVE_HTML:-}" | grep -q '/assets/'; then
   exit 1
 fi
 
-echo "    Verifying Supabase env inside the running app"
-if pm2 env "$(pm2 id "$PM2_NAME" | tr -dc '0-9')" 2>/dev/null | grep -q '^SUPABASE_URL='; then
-  echo "    SUPABASE_URL present in process env"
-else
-  echo "!! SUPABASE_URL missing from process env — check $APP_DIR/.env"
+echo "    Verifying Supabase config"
+if ! grep -q '^SUPABASE_URL=https' "$APP_DIR/.env"; then
+  echo "!! SUPABASE_URL missing from $APP_DIR/.env"
   exit 1
 fi
+# The real signal: does the running app still complain about missing env?
+sleep 2
+curl -fsS -o /dev/null "http://127.0.0.1:$APP_PORT/crzr-x9k2-panel" || true
+if pm2 logs "$PM2_NAME" --lines 60 --nostream 2>/dev/null | grep -q 'Missing Supabase environment'; then
+  echo "!! App still reports missing Supabase env — check $APP_DIR/.env and 'bun run start'"
+  exit 1
+fi
+echo "    Supabase env OK"
+
 
 
 echo "==> 5/5 Status"
