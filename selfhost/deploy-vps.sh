@@ -67,10 +67,17 @@ echo "==> 3/5 Installing deps + build"
 command -v bun >/dev/null || { curl -fsSL https://bun.sh/install | bash; export BUN_INSTALL="$HOME/.bun"; export PATH="$BUN_INSTALL/bin:$PATH"; }
 export PATH="$HOME/.bun/bin:$PATH"
 bun install
+rm -rf "$APP_DIR/.output"
 bun run build
+if [ ! -f "$APP_DIR/.output/public/favicon.svg" ]; then
+  mkdir -p "$APP_DIR/.output/public"
+  cp -f "$APP_DIR/public/favicon.svg" "$APP_DIR/.output/public/favicon.svg"
+fi
 
 echo "==> 4/5 Restarting PM2 app ($PM2_NAME on port $APP_PORT)"
 command -v pm2 >/dev/null || npm i -g pm2
+# Load .env into this shell so pm2 --update-env hands the vars to the app.
+set -a; . "$APP_DIR/.env"; set +a
 if pm2 describe "$PM2_NAME" >/dev/null 2>&1; then
   pm2 restart "$PM2_NAME" --update-env
 else
