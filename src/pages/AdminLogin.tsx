@@ -6,7 +6,7 @@ import { ShieldAlert, Lock, KeyRound, Loader2, ArrowLeft, ArrowRight, AlertCircl
 import { useAuth } from "@/hooks/useAuth";
 import { ScorpionAuthShell } from "@/components/ScorpionAuthShell";
 
-const API_BASE_URL = "https://cruzercc.shop/api";
+const AUTH_BACKEND = "NeoCast authentication service";
 
 const AdminLogin = () => {
   const nav = useNavigate();
@@ -21,7 +21,7 @@ const AdminLogin = () => {
   const [error, setError] = useState<{ title: string; detail?: string } | null>(null);
 
   useEffect(() => {
-    if (!authLoading && user && profile?.role === "admin") {
+    if (!authLoading && user && (profile?.role === "admin" || profile?.role === "superadmin")) {
       nav(safeAdminFrom ?? "/admin", { replace: true });
     }
   }, [authLoading, user, profile, nav, safeAdminFrom]);
@@ -39,7 +39,9 @@ const AdminLogin = () => {
     setLoading(true);
     try {
       const result = await authApi.adminLogin({ identifier: email.trim().toLowerCase(), password });
-      if (result.user.role !== "admin") throw new Error("This account has no administrator rights.");
+       if (result.user.role !== "admin" && result.user.role !== "superadmin") {
+         throw new Error("This account has no administrator rights.");
+       }
       setToken(result.token);
       await refresh();
       toast.success("Admin console unlocked");
@@ -47,7 +49,7 @@ const AdminLogin = () => {
     } catch (err) {
       let title = "Sign-in error"; let detail: string | undefined;
       if (err instanceof ApiError) {
-        if (err.status === 0) { title = "Server unavailable"; detail = `Backend ${API_BASE_URL} is unavailable.`; }
+         if (err.status === 0) { title = "Server unavailable"; detail = `${AUTH_BACKEND} is unavailable.`; }
         else if (err.status === 401) { title = "Invalid credentials"; detail = "Check your email and password."; }
         else if (err.status === 403) { title = "Not an admin account"; detail = "This login is for administrators only."; }
         else if (err.contentType?.includes("text/html")) { title = "Server configuration error"; detail = `API returned HTML (HTTP ${err.status}).`; }

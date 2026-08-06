@@ -32,6 +32,13 @@ ANON_KEY=$(jq -r .ANON_KEY "$CREDS")
 SERVICE_ROLE_KEY=$(jq -r .SERVICE_ROLE_KEY "$CREDS")
 POSTGRES_PASSWORD=$(jq -r .POSTGRES_PASSWORD "$CREDS")
 
+# Keep app-specific secrets across deployments. The generated backend values
+# below are refreshed, but unrelated secrets must not be erased.
+PLISIO_API_KEY="${PLISIO_API_KEY:-}"
+if [ -z "$PLISIO_API_KEY" ] && [ -f "$APP_DIR/.env" ]; then
+  PLISIO_API_KEY=$(sed -n 's/^PLISIO_API_KEY=//p' "$APP_DIR/.env" | tail -n 1)
+fi
+
 cat > "$APP_DIR/.env" <<APPENV
 VITE_SUPABASE_URL=https://$DOMAIN_API
 VITE_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY
@@ -42,7 +49,19 @@ SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
 SUPABASE_DB_URL=postgresql://postgres:$POSTGRES_PASSWORD@127.0.0.1:5433/postgres
 PORT=$APP_PORT
 APPENV
+if [ -n "$PLISIO_API_KEY" ]; then
+  printf 'PLISIO_API_KEY=%s\n' "$PLISIO_API_KEY" >> "$APP_DIR/.env"
+fi
 chmod 600 "$APP_DIR/.env"
+
+echo "    Checking NeoCast auth gateway"
+AUTH_STATUS=$(curl -sS -o /tmp/neocast-auth-health.json -w '%{http_code}' \
+  -H "apikey: $ANON_KEY" "https://$DOMAIN_API/auth/v1/health" || true)
+if [ "$AUTH_STATUS" != "200" ]; then
+  echo "!! Auth gateway failed (HTTP $AUTH_STATUS)"
+  cat /tmp/neocast-auth-health.json 2>/dev/null || true
+  exit 1
+fi
 
 echo "==> 3/5 Installing deps + build"
 command -v bun >/dev/null || { curl -fsSL https://bun.sh/install | bash; export BUN_INSTALL="$HOME/.bun"; export PATH="$BUN_INSTALL/bin:$PATH"; }
@@ -58,6 +77,17 @@ else
   pm2 start "bun run start" --name "$PM2_NAME" --cwd "$APP_DIR"
 fi
 pm2 save
+
+# Fail loudly if nginx is still serving a stale process/deployment.
+for _ in $(seq 1 20); do
+  LIVE_HTML=$(curl -fsS https://neocast.cc/crzr-x9k2-panel || true)
+  if printf '%s' "$LIVE_HTML" | grep -q '/assets/'; then break; fi
+  sleep 1
+done
+if ! printf '%s' "${LIVE_HTML:-}" | grep -q '/assets/'; then
+  echo "!! App did not become ready through nginx"
+  exit 1
+fi
 
 echo "==> 5/5 Status"
 pm2 logs "$PM2_NAME" --lines 25 --nostream || true
