@@ -42,13 +42,15 @@ cd /var/www/neocast-cc/selfhost && bash setup-supabase.sh
 
 > Warning: live data থাকলে এই reset চালাবে না — আগে backup নিতে হবে।
 
-## ধাপ ৩ — অ্যাডমিন + ডেমো ইউজার বানাও
+## ধাপ ৩ — অ্যাডমিন ইউজার তৈরি বা repair করো
 ```bash
 cd /var/www/neocast-cc/selfhost
 SUPABASE_URL=https://supabase.neocast.cc \
-SERVICE_KEY=$(jq -r .SERVICE_ROLE_KEY /opt/supabase/credentials.json) \
-node create-users.mjs
+SERVICE_KEY=$(jq -r .SERVICE_ROLE_KEY /opt/supabase-neocast/credentials.json) \
+node create-users.mjs '<email>' '<password>' superadmin
 ```
+একই email আগে থাকলে এই command password reset, email confirmation এবং প্রয়োজনীয়
+`admin` + `superadmin` role repair করে শেষে real password login verify করবে।
 
 ## ধাপ ৪ — অ্যাপ রিবিল্ড (নতুন DB-তে পয়েন্ট করার জন্য)
 ```bash
