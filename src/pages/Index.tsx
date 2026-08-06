@@ -1,7 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { listLatestStock, listAnnouncements, listMyOrders, type StockUpdate, type Announcement, type Order } from "@/lib/store";
-import { AnnouncementTicker } from "@/components/shop/AnnouncementTicker";
 import { AnnouncementNoticeGrid } from "@/components/shop/AnnouncementNoticeGrid";
 import { AppShell } from "@/components/AppShell";
 import Seo from "@/components/Seo";
@@ -68,7 +67,7 @@ const Index = () => {
 
   return (
     <AppShell>
-      <AnnouncementTicker announcements={anns} loading={loading} />
+      
       <Seo title="NeoCast — Home" description="Buyer dashboard, live stock feed and announcements." path="/" />
 
       {/* HERO */}
