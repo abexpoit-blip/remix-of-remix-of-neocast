@@ -489,6 +489,45 @@ export type Database = {
         }
         Relationships: []
       }
+      redeem_codes: {
+        Row: {
+          active: boolean
+          amount: number
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          note: string | null
+          updated_at: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          active?: boolean
+          amount: number
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          active?: boolean
+          amount?: number
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          note?: string | null
+          updated_at?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: []
+      }
       site_settings: {
         Row: {
           key: string
@@ -562,6 +601,7 @@ export type Database = {
         Args: { _product_id: string; _quantity?: number }
         Returns: string
       }
+      redeem_code: { Args: { _code: string }; Returns: number }
       settle_crypto_deposit: {
         Args: {
           _confirmations?: number
