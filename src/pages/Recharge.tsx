@@ -221,6 +221,23 @@ const Recharge = () => {
     return <Receipt className="h-4 w-4 text-[#888]" />;
   };
 
+  const submitRedeem = async () => {
+    const code = redeemInput.trim();
+    if (!code) return toast.error("Enter a redeem code");
+    setRedeemBusy(true);
+    try {
+      const credited = await redeemCode(code);
+      toast.success(`$${credited.toFixed(2)} added to your balance`);
+      setRedeemInput("");
+      await refresh();
+      void loadData();
+    } catch (e) {
+      toast.error(translateRedeemError(e instanceof Error ? e.message : "Redeem failed"));
+    } finally {
+      setRedeemBusy(false);
+    }
+  };
+
   const cancelInvoice = () => {
     setActiveInvoice(null);
     setCountdown(-1);
