@@ -33,6 +33,7 @@ const AdminCategories = lazy(() => import("./pages/AdminCategories"));
 const AdminShop = lazy(() => import("./pages/AdminShop"));
 const AdminExport = lazy(() => import("./pages/AdminExport"));
 const AdminAnnouncements = lazy(() => import("./pages/AdminAnnouncements"));
+const AdminRedeem = lazy(() => import("./pages/AdminRedeem"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const queryClient = new QueryClient({
@@ -77,6 +78,7 @@ const App = () => (
 
             <Route path="/admin/cards" element={<AdminRoute><AdminCards /></AdminRoute>} />
             <Route path="/admin/announcements" element={<AdminRoute><AdminAnnouncements /></AdminRoute>} />
+            <Route path="/admin/redeem" element={<AdminRoute><AdminRedeem /></AdminRoute>} />
 
             <Route path="/admin/payments" element={<AdminRoute><AdminPayments /></AdminRoute>} />
             <Route path="/admin/payment-gateway" element={<AdminRoute><AdminPaymentGateway /></AdminRoute>} />
