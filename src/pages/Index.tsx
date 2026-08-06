@@ -7,6 +7,8 @@ import { AppShell } from "@/components/AppShell";
 import Seo from "@/components/Seo";
 
 import { useAuth } from "@/hooks/useAuth";
+import { useSiteSettings } from "@/hooks/useSiteSettings";
+import { telegramUrl, telegramLabel } from "@/lib/telegram";
 import {
   Activity, Megaphone, ShieldCheck, MessageCircle, ArrowRight,
   Layers, RefreshCw, Send, Wallet, ShoppingBag, TrendingUp, Clock,
