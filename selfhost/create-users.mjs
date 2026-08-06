@@ -62,13 +62,17 @@ if (user) {
 
 const roles = role === 'superadmin' ? ['admin', 'superadmin'] : [role];
 for (const assignedRole of roles) {
-  const response = await fetch(`${URL_}/rest/v1/user_roles`, {
+  const response = await fetch(`${URL_}/rest/v1/user_roles?on_conflict=user_id,role`, {
     method: 'POST',
     headers: { ...headers, Prefer: 'resolution=ignore-duplicates' },
     body: JSON.stringify({ user_id: user.id, role: assignedRole }),
   });
   if (!response.ok) {
     const message = await responseError(response);
+    if (/duplicate key/i.test(message)) {
+      console.log(`  ${assignedRole} role: already granted`);
+      continue;
+    }
     if (assignedRole === 'superadmin' && /app_role/.test(message)) {
       console.warn(`  superadmin role skipped: database does not know it yet.\n  run: bash selfhost/fix-superadmin.sh   then re-run this command.`);
       continue;
@@ -77,6 +81,7 @@ for (const assignedRole of roles) {
   }
   console.log(`  ${assignedRole} role: ok`);
 }
+
 
 
 // Verify the exact password against the same public auth endpoint used by the app.
