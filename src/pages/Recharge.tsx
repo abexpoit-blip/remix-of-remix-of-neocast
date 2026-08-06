@@ -7,9 +7,10 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import {
   CheckCircle2, Copy, Clock, XCircle, Loader2,
-  AlertCircle, ArrowDownLeft, ArrowUpRight, TimerReset, Receipt, ShieldCheck, Wallet,
+  AlertCircle, ArrowDownLeft, ArrowUpRight, TimerReset, Receipt, ShieldCheck, Wallet, Gift,
 } from "lucide-react";
 import { toast } from "sonner";
+import { redeemCode, translateRedeemError } from "@/lib/store";
 import { QRCodeSVG } from "qrcode.react";
 
 interface Deposit { id: string; amount: number; method: string; txid: string | null; status: string; created_at: string; crypto_currency?: string; plisio_wallet?: string; confirmations?: number; }
