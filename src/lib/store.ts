@@ -728,6 +728,33 @@ export const adminSystemSnapshot = async (): Promise<SystemSnapshot> => {
   };
 };
 
+/* ---------------- live stock feed (latest products) ---------------- */
+
+export interface StockUpdate {
+  id: string;
+  label: string;
+  count: number;
+  created_at: string;
+}
+
+/** Latest stock drops for the home page live feed. */
+export const listLatestStock = async (limit = 5): Promise<StockUpdate[]> => {
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, title, stock, created_at")
+    .eq("active", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []).map((p) => ({
+    id: p.id,
+    label: p.title,
+    count: Number(p.stock ?? 0),
+    created_at: p.created_at,
+  }));
+};
+
+
 export interface Announcement {
   id: string;
   title: string;
