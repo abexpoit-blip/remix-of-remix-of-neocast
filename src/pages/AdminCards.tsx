@@ -10,7 +10,7 @@ import { CreditCard, Trash2, Search, EyeOff, Eye, DollarSign, Check, X, ChevronL
 import { toast } from "sonner";
 
 type Card = AdminCardRow;
-const PER_PAGE = 25;
+const PER_PAGE = 100;
 
 const AdminCards = () => {
   const [allCards, setAllCards] = useState<Card[]>([]);
@@ -164,7 +164,7 @@ const AdminCards = () => {
 
         {totalCards > cards.length && (
           <div className="mb-3 flex items-center justify-between gap-3 border border-border/40 bg-secondary/20 px-3 py-2 text-xs">
-            <span className="text-muted-foreground">Page selection covers 25 cards.</span>
+            <span className="text-muted-foreground">Page selection covers 100 cards.</span>
             <Button size="sm" variant="outline" onClick={toggleAllFiltered}>
               {allFilteredSelected ? "Clear all filtered" : `Select all ${totalCards.toLocaleString()} filtered cards`}
             </Button>

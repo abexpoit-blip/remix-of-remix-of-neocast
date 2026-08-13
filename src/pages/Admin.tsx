@@ -157,8 +157,8 @@ const Admin = () => {
     }
   }, [userSearch]);
 
-  // Users pagination — 25 per page
-  const USERS_PER_PAGE = 25;
+  // Users pagination — 100 per page
+  const USERS_PER_PAGE = 100;
   const [userPage, setUserPage] = useState(1);
   const userTotalPages = Math.max(1, Math.ceil(users.length / USERS_PER_PAGE));
   useEffect(() => { setUserPage(1); }, [userSearch, users.length]);
