@@ -47,7 +47,7 @@ const Recharge = () => {
 
   const [activeInvoice, setActiveInvoiceRaw] = useState<{
     deposit_id: string; wallet_address: string; crypto_amount: string;
-    currency: string; qr_data: string; status: string;
+    currency: string; qr_data: string; status: string; invoice_url?: string;
     confirmations: number; usd_amount: number; expires_ms: number;
     fee_amount?: number; charged_amount?: number;
     fee_mode?: "add" | "deduct"; fee_percent?: number;
@@ -201,6 +201,7 @@ const Recharge = () => {
         crypto_amount: inv.crypto_amount,
         currency: "LTC",
         qr_data: inv.wallet_address || "",
+        invoice_url: inv.invoice_url || "",
         status: "pending",
         confirmations: 0,
         usd_amount: inv.usd_amount ?? amtNum,

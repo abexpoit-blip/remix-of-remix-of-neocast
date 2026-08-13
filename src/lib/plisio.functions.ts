@@ -92,6 +92,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       wallet_address: walletAddress,
       crypto_amount: cryptoAmount,
       invoice_url: inv.invoice_url ?? "",
+      hosted_only: !walletAddress,
       currency: "LTC",
       usd_amount: credit,
       fee_percent: calculation.percent,
