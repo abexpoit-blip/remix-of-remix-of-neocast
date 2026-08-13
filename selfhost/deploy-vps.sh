@@ -9,6 +9,7 @@ APP_DIR="${APP_DIR:-/var/www/neocast-cc}"
 PM2_NAME="${PM2_NAME:-neocast-cc}"
 APP_PORT="${APP_PORT:-3003}"
 CREDS="${CREDS:-/opt/supabase-neocast/credentials.json}"
+PAYMENT_CREDS="${PAYMENT_CREDS:-/opt/supabase-neocast/plisio.env}"
 DOMAIN_API="${DOMAIN_API:-supabase.neocast.cc}"
 
 echo "==> 1/5 Fetching code from $REPO ($BRANCH)"
@@ -38,6 +39,9 @@ PLISIO_API_KEY="${PLISIO_API_KEY:-}"
 if [ -z "$PLISIO_API_KEY" ] && [ -f "$APP_DIR/.env" ]; then
   PLISIO_API_KEY=$(sed -n 's/^PLISIO_API_KEY=//p' "$APP_DIR/.env" | tail -n 1)
 fi
+if [ -z "$PLISIO_API_KEY" ] && [ -f "$PAYMENT_CREDS" ]; then
+  PLISIO_API_KEY=$(sed -n 's/^PLISIO_API_KEY=//p' "$PAYMENT_CREDS" | tail -n 1)
+fi
 
 cat > "$APP_DIR/.env" <<APPENV
 VITE_SUPABASE_URL=https://$DOMAIN_API
@@ -51,6 +55,8 @@ PORT=$APP_PORT
 APPENV
 if [ -n "$PLISIO_API_KEY" ]; then
   printf 'PLISIO_API_KEY=%s\n' "$PLISIO_API_KEY" >> "$APP_DIR/.env"
+  install -m 600 /dev/null "$PAYMENT_CREDS"
+  printf 'PLISIO_API_KEY=%s\n' "$PLISIO_API_KEY" > "$PAYMENT_CREDS"
 fi
 chmod 600 "$APP_DIR/.env"
 
