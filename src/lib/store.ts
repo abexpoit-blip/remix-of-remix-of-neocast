@@ -23,6 +23,14 @@ export const fetchAllPages = async <T>(
   return out;
 };
 
+/** Exact row count without pulling rows (immune to the 1000-row response cap). */
+const countRows = async (
+  build: () => PromiseLike<{ count: number | null; error: { message: string } | null }>,
+): Promise<number> => {
+  const { count } = await build();
+  return count ?? 0;
+};
+
 export type DeliveryType = "key" | "download" | "instant";
 
 
@@ -303,18 +311,19 @@ export const adminListOrders = async (): Promise<(Order & { username?: string })
 };
 
 export const adminStats = async () => {
-  const [users, products, orders, deposits] = await Promise.all([
-    supabase.from("profiles").select("id", { count: "exact", head: true }),
-    supabase.from("products").select("id", { count: "exact", head: true }),
-    supabase.from("orders").select("total"),
-    supabase.from("deposits").select("amount, status"),
+  const [users, products, orderRows, depositRows, pendingDeposits] = await Promise.all([
+    countRows(() => supabase.from("profiles").select("id", { count: "exact", head: true })),
+    countRows(() => supabase.from("products").select("id", { count: "exact", head: true })),
+    fetchAllPages<{ total: number | string }>((from, to) => supabase.from("orders").select("total").range(from, to)),
+    fetchAllPages<{ amount: number | string; status: string }>((from, to) => supabase.from("deposits").select("amount, status").range(from, to)),
+    countRows(() => supabase.from("deposits").select("id", { count: "exact", head: true }).eq("status", "pending")),
   ]);
-  const revenue = (orders.data ?? []).reduce((s, o) => s + num(o.total), 0);
-  const pendingDeposits = (deposits.data ?? []).filter((d) => d.status === "pending").length;
+  void depositRows;
+  const revenue = orderRows.reduce((s2, o) => s2 + num(o.total), 0);
   return {
-    users: users.count ?? 0,
-    products: products.count ?? 0,
-    orders: (orders.data ?? []).length,
+    users,
+    products,
+    orders: orderRows.length,
     revenue,
     pendingDeposits,
   };
@@ -518,11 +527,13 @@ export const adminBulkCreateCards = async (
     exp_month: r.exp_month || null,
     exp_year: r.exp_year || null,
   }));
+  let done = 0;
   for (const part of chunk(payload, CHUNK)) {
-    const { error } = await supabase.from("products").insert(part);
+    const { error } = await withRetry(async () => await supabase.from("products").insert(part));
     if (error) throw error;
+    done += part.length;
   }
-  return payload.length;
+  return done;
 };
 
 
@@ -642,18 +653,17 @@ export interface AdminOverview {
 }
 
 export const adminOverview = async (): Promise<AdminOverview> => {
-  const [orders, deposits, users, roles, keys] = await Promise.all([
-    supabase.from("orders").select("id, user_id, total, status, created_at").order("created_at", { ascending: false }).limit(500),
-    supabase.from("deposits").select("amount, status, created_at"),
-    supabase.from("profiles").select("id, username"),
-    supabase.from("user_roles").select("user_id, role"),
-    supabase.from("product_keys").select("is_sold"),
+  const [orderRows, depositRows, userRows, roleRows, cardsAvailable] = await Promise.all([
+    fetchAllPages<{ id: string; user_id: string; total: number | string; status: string; created_at: string }>((from, to) =>
+      supabase.from("orders").select("id, user_id, total, status, created_at").order("created_at", { ascending: false }).range(from, to)),
+    fetchAllPages<{ amount: number | string; status: string; created_at: string }>((from, to) =>
+      supabase.from("deposits").select("amount, status, created_at").range(from, to)),
+    fetchAllPages<{ id: string; username: string }>((from, to) => supabase.from("profiles").select("id, username").range(from, to)),
+    fetchAllPages<{ user_id: string; role: string }>((from, to) => supabase.from("user_roles").select("user_id, role").range(from, to)),
+    countRows(() => supabase.from("product_keys").select("id", { count: "exact", head: true }).eq("is_sold", false)),
   ]);
 
-  const nameById = new Map((users.data ?? []).map((u) => [u.id, u.username]));
-  const orderRows = orders.data ?? [];
-  const depositRows = deposits.data ?? [];
-  const keyRows = keys.data ?? [];
+  const nameById = new Map(userRows.map((u) => [u.id, u.username]));
 
   const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
   const dayMs = 86_400_000;
@@ -676,9 +686,9 @@ export const adminOverview = async (): Promise<AdminOverview> => {
     todayRevenue: revenueSince(startOfDay.getTime()),
     weekRevenue: revenueSince(since(7)),
     monthRevenue: revenueSince(since(30)),
-    totalUsers: (users.data ?? []).length,
-    totalSellers: (roles.data ?? []).filter((r) => r.role === "seller").length,
-    cardsAvailable: keyRows.filter((k) => !k.is_sold).length,
+    totalUsers: userRows.length,
+    totalSellers: roleRows.filter((r) => r.role === "seller").length,
+    cardsAvailable,
     todaySalesCount: todayOrders.length,
     todaySalesAmount: todayOrders.reduce((s, o) => s + num(o.total), 0),
     todayDeposits: depositRows
@@ -715,15 +725,14 @@ export interface SystemSnapshot {
 }
 
 export const adminSystemSnapshot = async (): Promise<SystemSnapshot> => {
-  const [profiles, roles, keys, orders] = await Promise.all([
-    supabase.from("profiles").select("id, username, balance, blocked"),
-    supabase.from("user_roles").select("user_id, role"),
-    supabase.from("product_keys").select("is_sold"),
-    supabase.from("orders").select("total"),
+  const [profileRows, roleRows, orderRows, keysTotal, keysSold] = await Promise.all([
+    fetchAllPages<{ id: string; username: string; balance: number | string; blocked: boolean }>((from, to) =>
+      supabase.from("profiles").select("id, username, balance, blocked").range(from, to)),
+    fetchAllPages<{ user_id: string; role: string }>((from, to) => supabase.from("user_roles").select("user_id, role").range(from, to)),
+    fetchAllPages<{ total: number | string }>((from, to) => supabase.from("orders").select("total").range(from, to)),
+    countRows(() => supabase.from("product_keys").select("id", { count: "exact", head: true })),
+    countRows(() => supabase.from("product_keys").select("id", { count: "exact", head: true }).eq("is_sold", true)),
   ]);
-  const profileRows = profiles.data ?? [];
-  const roleRows = roles.data ?? [];
-  const keyRows = keys.data ?? [];
   const balances = profileRows.map((p) => num(p.balance));
   const sellerIds = new Set(roleRows.filter((r) => r.role === "seller").map((r) => r.user_id));
 
@@ -737,9 +746,9 @@ export const adminSystemSnapshot = async (): Promise<SystemSnapshot> => {
       banned: profileRows.filter((p) => p.blocked).length,
     },
     cards: {
-      total: keyRows.length,
-      available: keyRows.filter((k) => !k.is_sold).length,
-      sold: keyRows.filter((k) => k.is_sold).length,
+      total: keysTotal,
+      available: keysTotal - keysSold,
+      sold: keysSold,
       reserved: 0,
     },
     wallets: {
@@ -749,8 +758,8 @@ export const adminSystemSnapshot = async (): Promise<SystemSnapshot> => {
       avg_balance: balances.length ? balances.reduce((s, b) => s + b, 0) / balances.length : 0,
     },
     orders: {
-      total: (orders.data ?? []).length,
-      revenue: (orders.data ?? []).reduce((s, o) => s + num(o.total), 0),
+      total: orderRows.length,
+      revenue: orderRows.reduce((sum, o) => sum + num(o.total), 0),
     },
     pending_seller_applications: 0,
     sellers_breakdown: profileRows
