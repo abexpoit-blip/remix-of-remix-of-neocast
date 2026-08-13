@@ -59,8 +59,32 @@ export async function createLtcInvoice(input: {
     success_invoice_url: input.successUrl,
     fail_invoice_url: input.failUrl,
     expire_min: "30",
+    // ask the provider for raw invoice data (wallet address + coin amount)
+    json: "true",
     ...(input.email ? { email: input.email } : {}),
   });
+}
+
+/**
+ * Resolve the on-chain wallet address + coin amount for a freshly created invoice.
+ * Some merchant configurations omit `wallet_hash` from /invoices/new, so we read
+ * the operation record (retrying briefly while the provider allocates an address).
+ */
+export async function resolveInvoiceWallet(
+  txnId: string,
+  attempts = 3,
+): Promise<{ wallet_hash?: string; amount?: string; invoice_url?: string }> {
+  for (let i = 0; i < attempts; i += 1) {
+    try {
+      const op = await getOperation(txnId);
+      const amount = op.amount ?? op.pending_amount ?? op.invoice_total_sum;
+      if (op.wallet_hash) return { wallet_hash: op.wallet_hash, amount: amount ? String(amount) : undefined, invoice_url: op.invoice_url };
+    } catch (e) {
+      console.error("plisio operation lookup failed", (e as Error).message);
+    }
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 1200));
+  }
+  return {};
 }
 
 
@@ -71,6 +95,7 @@ export interface Operation {
   amount?: string;
   source_amount?: string;
   invoice_total_sum?: string;
+  pending_amount?: string;
   wallet_hash?: string;
   invoice_url?: string;
 }
