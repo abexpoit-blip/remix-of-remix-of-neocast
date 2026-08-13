@@ -1010,7 +1010,7 @@ export interface ExportedCard {
  * calling this simply gets nothing back.
  */
 export const adminExportCards = async (f: ExportFilter): Promise<ExportedCard[]> => {
-  const data = await fetchAllPages<Record<string, unknown>>((from, to) => {
+  const data = await fetchAllPages<Record<string, string | number | null | { content: string; is_sold: boolean }[]>>((from, to) => {
     let q = supabase
       .from("products")
       .select("id, base, base_date, bin, brand, country, state, city, zip, exp_month, exp_year, price, product_keys(content, is_sold)")
