@@ -51,7 +51,6 @@ const Recharge = () => {
     confirmations: number; usd_amount: number; expires_ms: number;
     fee_amount?: number; charged_amount?: number;
     fee_mode?: "add" | "deduct"; fee_percent?: number;
-    invoice_url?: string;
   } | null>(() => {
 
     try {
@@ -209,7 +208,6 @@ const Recharge = () => {
         charged_amount: inv.charged_amount,
         fee_mode: inv.fee_mode,
         fee_percent: inv.fee_percent,
-        invoice_url: inv.invoice_url,
         expires_ms: inv.expires_ms || Date.now() + INVOICE_TTL_SEC * 1000,
 
       });
