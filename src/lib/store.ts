@@ -1,6 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * The API caps every single response at 1000 rows (server-side `max-rows`),
+ * so `.limit(5000)` silently returned only the newest 1000 cards — which made
+ * uploads past 1000 look like they had failed and older cards look deleted.
+ * This helper pages through with `.range()` until every row is fetched.
+ */
+const PAGE_SIZE = 1000;
+
+export const fetchAllPages = async <T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  hardCap = 100000,
+): Promise<T[]> => {
+  const out: T[] = [];
+  for (let from = 0; from < hardCap; from += PAGE_SIZE) {
+    const { data, error } = await build(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+  }
+  return out;
+};
+
 export type DeliveryType = "key" | "download" | "instant";
+
 
 export interface Category {
   id: string;
