@@ -407,6 +407,22 @@ const Recharge = () => {
                         {copiedField === "address" ? "Address copied" : "Copy wallet address"}
                       </button>
                     </>
+                  ) : activeInvoice.invoice_url ? (
+                    <>
+                      <p className="mt-2 text-[12px] text-[#666] leading-relaxed">
+                        Your unique LTC address for this invoice is issued on the secure checkout page.
+                        Open it, copy the address there, and pay — this page keeps tracking your payment.
+                      </p>
+                      <a
+                        href={activeInvoice.invoice_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`mt-2 w-full h-9 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] text-white text-[12px] inline-flex items-center justify-center gap-2 ${isExpired ? "pointer-events-none opacity-40" : ""}`}
+                      >
+                        <Wallet className="h-3.5 w-3.5" />
+                        Get LTC address
+                      </a>
+                    </>
                   ) : (
                     <p className="mt-2 text-[12px] text-[#888] inline-flex items-center gap-2">
                       <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--nc-accent)]" />
