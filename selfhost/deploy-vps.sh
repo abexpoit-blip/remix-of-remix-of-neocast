@@ -3,7 +3,7 @@
 # Run on the VPS as root:  bash deploy-vps.sh
 set -euo pipefail
 
-REPO="${REPO:-https://github.com/shovonex4-lgtm/remix-of-remix-of-neocast}"
+REPO="${REPO:-https://github.com/abexpoit-blip/remix-of-remix-of-neocast}"
 BRANCH="${BRANCH:-main}"
 APP_DIR="${APP_DIR:-/var/www/neocast-cc}"
 PM2_NAME="${PM2_NAME:-neocast-cc}"
