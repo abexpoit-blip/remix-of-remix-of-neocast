@@ -75,6 +75,12 @@ if grep -q '^PLISIO_API_KEY=$' "$APP_DIR/.env"; then
   exit 1
 fi
 
+# Verify the exact environment file the production Node process will load.
+# This catches missing/blank keys before PM2 replaces the healthy process.
+node --env-file="$APP_DIR/.env" -e \
+  'if (!(process.env.PLISIO_API_KEY || "").trim()) { console.error("PLISIO_API_KEY is unavailable to Node"); process.exit(1) }'
+echo "    Payment gateway key visible to Node"
+
 echo "==> 3/5 Installing deps + build"
 
 command -v bun >/dev/null || { curl -fsSL https://bun.sh/install | bash; export BUN_INSTALL="$HOME/.bun"; export PATH="$BUN_INSTALL/bin:$PATH"; }
@@ -105,10 +111,11 @@ fi
 
 echo "==> 4/5 Restarting PM2 app ($PM2_NAME on port $APP_PORT)"
 command -v pm2 >/dev/null || npm i -g pm2
-# Load .env into this shell too; the start script also reads it via node --env-file.
-set -a; . "$APP_DIR/.env"; set +a
 pm2 delete "$PM2_NAME" >/dev/null 2>&1 || true
-pm2 start "bun run start" --name "$PM2_NAME" --cwd "$APP_DIR" --update-env
+# Start Node directly with an absolute env-file path. This avoids PM2/bun cwd
+# differences silently dropping PLISIO_API_KEY after a deployment.
+pm2 start node --name "$PM2_NAME" --cwd "$APP_DIR" --update-env -- \
+  --env-file="$APP_DIR/.env" "$APP_DIR/.output/server/index.mjs"
 pm2 flush "$PM2_NAME" >/dev/null 2>&1 || true
 pm2 save
 
