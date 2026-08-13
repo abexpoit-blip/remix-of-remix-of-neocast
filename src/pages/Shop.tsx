@@ -103,7 +103,7 @@ const Shop = () => {
     });
   }, [all, q, searched]);
 
-  const PER_PAGE = 25;
+  const PER_PAGE = 50;
   const [page, setPage] = useState(1);
   const totalPages = Math.max(1, Math.ceil(cards.length / PER_PAGE));
   useEffect(() => { setPage(1); }, [q, all.length]);
