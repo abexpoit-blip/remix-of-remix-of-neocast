@@ -366,7 +366,7 @@ const Recharge = () => {
                   </div>
                 )}
                 <p className="text-[11px] text-center text-[#888]">
-                   {isExpired ? "This QR code is no longer valid" : walletAddress ? "Scan the QR in your LTC wallet" : "Address is being generated — keep this tab open"}
+                   {isExpired ? "This QR code is no longer valid" : walletAddress ? "Scan the QR in your LTC wallet" : activeInvoice.invoice_url ? "Get your LTC address from the checkout page" : "Address is being generated — keep this tab open"}
                 </p>
               </div>
 
