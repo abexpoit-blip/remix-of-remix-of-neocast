@@ -49,6 +49,7 @@ const AdminPaymentGateway = () => {
       await Promise.all([
         writeSiteSetting("deposit_fee_percent", String(settings.deposit_fee_percent)),
         writeSiteSetting("deposit_fee_flat", String(settings.deposit_fee_flat)),
+        writeSiteSetting("deposit_fee_mode", settings.deposit_fee_mode),
         writeSiteSetting("default_commission_percent", String(settings.default_commission_percent)),
         writeSiteSetting("min_card_price", String(settings.min_card_price)),
       ]);
@@ -118,6 +119,24 @@ const AdminPaymentGateway = () => {
 
         {/* Deposit Fees */}
         <Section icon={Wallet} title="Deposit Fees">
+          <Field label="How the fee is applied">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {([
+                ["add", "Add fee on top", "User receives the entered amount; fee is added to the payment."],
+                ["deduct", "Deduct from deposit", "User pays the entered amount; fee is removed before balance credit."],
+              ] as const).map(([mode, title, help]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => set("deposit_fee_mode", mode)}
+                  className={`p-3 border text-left transition ${settings.deposit_fee_mode === mode ? "border-primary bg-primary/10" : "border-border/40 bg-secondary/20"}`}
+                >
+                  <span className="block text-sm font-semibold">{title}</span>
+                  <span className="block mt-1 text-[10px] text-muted-foreground">{help}</span>
+                </button>
+              ))}
+            </div>
+          </Field>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="Deposit fee (%)">
               <div className="relative">
@@ -129,7 +148,7 @@ const AdminPaymentGateway = () => {
                   className="pl-10"
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">Percentage deducted from each deposit (e.g. 5 = 5%)</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Percentage used with the fee mode selected above.</p>
             </Field>
             <Field label="Deposit flat fee ($)">
               <div className="relative">
@@ -141,7 +160,7 @@ const AdminPaymentGateway = () => {
                   className="pl-10"
                 />
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1">Fixed USD amount deducted from each deposit</p>
+              <p className="text-[10px] text-muted-foreground mt-1">Fixed USD fee used together with the percentage.</p>
             </Field>
           </div>
         </Section>

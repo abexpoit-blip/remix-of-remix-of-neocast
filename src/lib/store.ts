@@ -737,21 +737,52 @@ export interface StockUpdate {
   created_at: string;
 }
 
+export interface StockBrand {
+  brand: string;
+  count: number;
+}
+
 /** Latest stock drops for the home page live feed. */
 export const listLatestStock = async (limit = 5): Promise<StockUpdate[]> => {
   const { data, error } = await supabase
     .from("products")
-    .select("id, title, stock, created_at")
+    .select("id, base, base_date, created_at")
     .eq("active", true)
+    .gt("stock", 0)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .limit(1000);
   if (error) throw error;
-  return (data ?? []).map((p) => ({
-    id: p.id,
-    label: p.title,
-    count: Number(p.stock ?? 0),
-    created_at: p.created_at,
-  }));
+  const groups = new Map<string, StockUpdate>();
+  for (const product of data ?? []) {
+    const date = String(product.base_date ?? product.created_at.slice(0, 10));
+    const base = product.base?.trim() || "Unassigned base";
+    const key = `${date}__${base}`;
+    const current = groups.get(key);
+    if (current) current.count += 1;
+    else groups.set(key, { id: key, label: `${base} · ${date}`, count: 1, created_at: product.created_at });
+  }
+  return [...groups.values()]
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .slice(0, limit);
+};
+
+export const listStockBrands = async (): Promise<StockBrand[]> => {
+  const { data, error } = await supabase
+    .from("products")
+    .select("brand")
+    .eq("active", true)
+    .gt("stock", 0)
+    .limit(5000);
+  if (error) throw error;
+  const counts = new Map<string, number>();
+  for (const product of data ?? []) {
+    const brand = (product.brand?.trim() || "Other").toUpperCase();
+    counts.set(brand, (counts.get(brand) ?? 0) + 1);
+  }
+  return [...counts.entries()]
+    .map(([brand, count]) => ({ brand, count }))
+    .sort((a, b) => b.count - a.count || a.brand.localeCompare(b.brand))
+    .slice(0, 8);
 };
 
 
@@ -824,7 +855,7 @@ export const adminListCards = async (opts: {
     .from("products")
     .select("id, bin, brand, country, price, active, stock, sold_count, exp_month, exp_year, created_at, category_id")
     .order("created_at", { ascending: false })
-    .limit(1000);
+    .limit(5000);
   const s = opts.search?.trim();
   if (s) q = q.or(`bin.ilike.%${s}%,brand.ilike.%${s}%,country.ilike.%${s}%,title.ilike.%${s}%`);
   const { data, error } = await q;

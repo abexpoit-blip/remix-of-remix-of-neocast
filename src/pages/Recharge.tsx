@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { redeemCode, translateRedeemError } from "@/lib/store";
 import { QRCodeSVG } from "qrcode.react";
+import { calculateDepositFee } from "@/lib/fees";
 
 interface Deposit { id: string; amount: number; method: string; txid: string | null; status: string; created_at: string; crypto_currency?: string; plisio_wallet?: string; confirmations?: number; }
 interface Transaction { id: string; type: string; amount: number; note?: string; method?: string; ref_id?: string; meta?: string; created_at: string; }
@@ -46,6 +47,7 @@ const Recharge = () => {
     currency: string; qr_data: string; status: string;
     confirmations: number; usd_amount: number; expires_ms: number;
     fee_amount?: number; charged_amount?: number;
+    fee_mode?: "add" | "deduct"; fee_percent?: number;
   } | null>(() => {
 
     try {
@@ -171,6 +173,12 @@ const Recharge = () => {
   const isExpired = !!activeInvoice && countdown === 0;
   const MIN_DEPOSIT = Math.max(20, settings.min_deposit || 20);
   const amtNum = Number(amount) || 0;
+  const feePreview = calculateDepositFee(
+    amtNum,
+    settings.deposit_fee_percent,
+    settings.deposit_fee_flat,
+    settings.deposit_fee_mode,
+  );
 
   const createInvoice = async () => {
     if (!amtNum || amtNum < MIN_DEPOSIT) return toast.error(`Minimum deposit is $${MIN_DEPOSIT}.`);
@@ -188,6 +196,8 @@ const Recharge = () => {
         usd_amount: inv.usd_amount ?? amtNum,
         fee_amount: inv.fee_amount,
         charged_amount: inv.charged_amount,
+        fee_mode: inv.fee_mode,
+        fee_percent: inv.fee_percent,
         expires_ms: inv.expires_ms || Date.now() + INVOICE_TTL_SEC * 1000,
 
       });
@@ -324,9 +334,9 @@ const Recharge = () => {
                 <div className="text-center border border-[#e6e6e6] bg-[#fafafa] p-3">
                   <p className="text-[11px] uppercase tracking-wider text-[#888]">Deposit amount</p>
                   <p className="text-[24px] font-semibold text-[var(--nc-accent)] font-mono">${activeInvoice.usd_amount.toFixed(2)}</p>
-                  {activeInvoice.charged_amount ? (
+                  {activeInvoice.fee_amount ? (
                     <p className="text-[11px] text-[#888] font-mono">
-                      charge ${activeInvoice.charged_amount.toFixed(2)} (2% fee)
+                      pay ${activeInvoice.charged_amount?.toFixed(2)} · fee ${activeInvoice.fee_amount.toFixed(2)}
                     </p>
                   ) : null}
 
@@ -463,21 +473,21 @@ const Recharge = () => {
 
                 <div className="text-[12px] text-[#666] mt-4 pt-4 border-t border-[#eee] space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span>Network fee (2%)</span>
-                    <span className="font-mono text-[#1f2d3d]">${(amtNum * 0.02).toFixed(2)}</span>
+                    <span>Deposit fee ({feePreview.percent}%{feePreview.flat > 0 ? ` + $${feePreview.flat.toFixed(2)}` : ""})</span>
+                    <span className="font-mono text-[#1f2d3d]">${feePreview.fee.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Total to pay</span>
-                    <span className="font-mono font-semibold text-[var(--nc-accent)]">${(amtNum * 1.02).toFixed(2)}</span>
+                    <span className="font-mono font-semibold text-[var(--nc-accent)]">${feePreview.charged.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-[#eee] pt-1.5 mt-1.5">
                     <span className="font-semibold text-[#1f2d3d]">Added to balance (after fee)</span>
-                    <span className="font-mono font-semibold text-[#2e7d32]">+${amtNum.toFixed(2)}</span>
+                    <span className="font-mono font-semibold text-[#2e7d32]">+${feePreview.credit.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Balance after deposit</span>
                     <span className="font-mono font-semibold text-[#1f2d3d]">
-                      ${(Number(profile?.balance ?? 0) + amtNum).toFixed(2)}
+                      ${(Number(profile?.balance ?? 0) + feePreview.credit).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">

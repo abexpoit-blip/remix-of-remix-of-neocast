@@ -1,12 +1,23 @@
-/** Fee (%) added on top of the amount the user wants credited. */
-export const CLIENT_FEE_PERCENT = 2;
+export type DepositFeeMode = "add" | "deduct";
 
-/** Amount the user must actually pay so that `credit` lands on the balance. */
-export function withFee(credit: number) {
-  const fee = Math.round(credit * CLIENT_FEE_PERCENT) / 100;
-  return {
-    credit: Math.round(credit * 100) / 100,
-    fee: Math.round(fee * 100) / 100,
-    charged: Math.round((credit + fee) * 100) / 100,
-  };
+const money = (value: number) => Math.round(value * 100) / 100;
+
+/**
+ * Calculates a deposit without hiding where the fee is applied.
+ * add: the requested amount is credited and the fee is added to the invoice.
+ * deduct: the requested amount is charged and the fee is removed before crediting.
+ */
+export function calculateDepositFee(
+  requested: number,
+  percent: number,
+  flat: number,
+  mode: DepositFeeMode,
+) {
+  const safeRequested = Math.max(0, money(requested));
+  const safePercent = Math.min(100, Math.max(0, Number(percent) || 0));
+  const safeFlat = Math.max(0, Number(flat) || 0);
+  const fee = money((safeRequested * safePercent) / 100 + safeFlat);
+  const charged = mode === "add" ? money(safeRequested + fee) : safeRequested;
+  const credit = mode === "deduct" ? money(Math.max(0, safeRequested - fee)) : safeRequested;
+  return { requested: safeRequested, percent: safePercent, flat: money(safeFlat), fee, charged, credit, mode };
 }

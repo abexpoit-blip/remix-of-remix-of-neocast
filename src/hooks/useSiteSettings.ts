@@ -14,6 +14,7 @@ export interface SiteSettings {
   min_card_price: number;
   deposit_fee_percent: number;
   deposit_fee_flat: number;
+  deposit_fee_mode: "add" | "deduct";
   min_deposit: number;
   support_telegram: string;
   support_telegram_channel: string;
@@ -38,6 +39,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   min_card_price: 1,
   deposit_fee_percent: 0,
   deposit_fee_flat: 0,
+  deposit_fee_mode: "add",
   min_deposit: 5,
   support_telegram: "",
   support_telegram_channel: "",
@@ -73,6 +75,7 @@ export const refreshSiteSettings = async (): Promise<SiteSettings> => {
         ? (row.ticker_items as string[])
         : DEFAULT_SETTINGS.ticker_items,
       min_deposit: (row.min_deposit != null && Number(row.min_deposit) > 0) ? Number(row.min_deposit) : DEFAULT_SETTINGS.min_deposit,
+      deposit_fee_mode: row.deposit_fee_mode === "deduct" ? "deduct" : "add",
 
     };
     broadcast(merged);

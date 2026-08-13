@@ -17,7 +17,7 @@ export interface NewInvoice {
 }
 
 function apiKey(): string {
-  const k = process.env.PLISIO_API_KEY;
+  const k = process.env["PLISIO_API_KEY"];
   if (!k) throw new Error("payment_gateway_not_configured");
   return k;
 }
@@ -34,9 +34,6 @@ async function call<T>(path: string, params: Record<string, string>): Promise<T>
   }
   return json.data as T;
 }
-
-/** Percentage fee paid by the client on top of the credited amount. */
-export const CLIENT_FEE_PERCENT = 2;
 
 export async function createLtcInvoice(input: {
   usdAmount: number;
@@ -61,7 +58,6 @@ export async function createLtcInvoice(input: {
     fail_callback_url: input.callbackUrl,
     success_invoice_url: input.successUrl,
     fail_invoice_url: input.failUrl,
-    redirect_to_invoice: "true",
     expire_min: "30",
     ...(input.email ? { email: input.email } : {}),
   });

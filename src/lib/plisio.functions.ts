@@ -2,7 +2,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequestUrl } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CLIENT_FEE_PERCENT, withFee } from "@/lib/fees";
+import { calculateDepositFee, type DepositFeeMode } from "@/lib/fees";
 
 
 /** Create an LTC top-up invoice for the signed-in user. */
@@ -13,7 +13,21 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
     const { createLtcInvoice } = await import("@/lib/plisio.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const { credit, fee, charged } = withFee(data.amount);
+    const { data: feeRows, error: feeError } = await context.supabase
+      .from("site_settings")
+      .select("key, value")
+      .in("key", ["deposit_fee_percent", "deposit_fee_flat", "deposit_fee_mode"]);
+    if (feeError) throw new Error("payment_settings_unavailable");
+    const feeSettings = Object.fromEntries((feeRows ?? []).map((row) => [row.key, row.value ?? ""]));
+    const feeMode: DepositFeeMode = feeSettings.deposit_fee_mode === "deduct" ? "deduct" : "add";
+    const calculation = calculateDepositFee(
+      data.amount,
+      Number(feeSettings.deposit_fee_percent ?? 0),
+      Number(feeSettings.deposit_fee_flat ?? 0),
+      feeMode,
+    );
+    const { credit, fee, charged } = calculation;
+    if (credit <= 0 || charged <= 0) throw new Error("invalid_deposit_after_fee");
     const origin = getRequestUrl().origin;
 
     // clean up anything stale first
@@ -27,7 +41,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
         method: "crypto",
         status: "pending",
         crypto_currency: "LTC",
-        fee_percent: CLIENT_FEE_PERCENT,
+        fee_percent: calculation.percent,
         fee_amount: fee,
         charged_amount: charged,
       })
@@ -71,9 +85,10 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       crypto_amount: String(inv.amount),
       currency: "LTC",
       usd_amount: credit,
-      fee_percent: CLIENT_FEE_PERCENT,
+      fee_percent: calculation.percent,
       fee_amount: fee,
       charged_amount: charged,
+      fee_mode: calculation.mode,
       expires_ms: Date.parse(expiresAt),
       status: "pending" as const,
       confirmations: 0,
@@ -145,5 +160,5 @@ export const checkDepositStatus = createServerFn({ method: "POST" })
 
 /** Reports whether the Plisio API key is configured on the server (never returns the key). */
 export const plisioKeyStatus = createServerFn({ method: "GET" }).handler(async () => ({
-  configured: Boolean(process.env.PLISIO_API_KEY),
+  configured: Boolean(process.env["PLISIO_API_KEY"]),
 }));
