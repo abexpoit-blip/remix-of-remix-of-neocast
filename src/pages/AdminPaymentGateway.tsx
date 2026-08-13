@@ -14,12 +14,10 @@ import { DEFAULT_SETTINGS, refreshSiteSettings, SiteSettings } from "@/hooks/use
 
 const AdminPaymentGateway = () => {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
-  const [plisioKey, setPlisioKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [keyExists, setKeyExists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingKey, setSavingKey] = useState(false);
 
   useEffect(() => {
     document.title = "Admin · Payment Gateway";
@@ -61,12 +59,6 @@ const AdminPaymentGateway = () => {
     } finally { setSaving(false); }
   };
 
-  const savePlisioKey = async () => {
-    toast.info("The Plisio API key is stored as a server secret and can only be changed from the project settings.");
-    setPlisioKey("");
-  };
-
-
   if (loading) {
     return (
       <AdminLayout title="Payment Gateway">
@@ -100,10 +92,10 @@ const AdminPaymentGateway = () => {
               <div className="relative flex-1">
                 <Input
                   type={showKey ? "text" : "password"}
-                  value={plisioKey}
-                  onChange={(e) => setPlisioKey(e.target.value)}
-                  placeholder={keyExists ? "••••••••••••••••  (enter new key to update)" : "Enter your Plisio API secret key"}
-                  className="pr-10"
+                  value={keyExists ? "••••••••••••••••••••" : ""}
+                  readOnly
+                  placeholder="Not configured on the server"
+                  className="pr-10 opacity-70 cursor-not-allowed"
                 />
                 <button
                   type="button"
@@ -113,15 +105,15 @@ const AdminPaymentGateway = () => {
                   {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
-              <button onClick={savePlisioKey} disabled={savingKey || !plisioKey.trim()} className="btn-luxe shrink-0">
-                {savingKey ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                Save key
-              </button>
             </div>
           </Field>
           <p className="text-[10px] text-muted-foreground mt-1">
-            Get your key from <a href="https://plisio.net/account/api" target="_blank" rel="noreferrer" className="text-primary-glow underline">plisio.net/account/api</a>
+            The key lives only in the server environment (<span className="font-mono">PLISIO_API_KEY</span>) — it cannot be
+            saved from this panel. Get it from{" "}
+            <a href="https://plisio.net/account/api" target="_blank" rel="noreferrer" className="text-primary-glow underline">plisio.net/account/api</a>,
+            add it to the server env, then restart the app.
           </p>
+
         </Section>
 
         {/* Deposit Fees */}

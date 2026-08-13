@@ -63,7 +63,16 @@ if [ "$AUTH_STATUS" != "200" ]; then
   exit 1
 fi
 
+echo "    Applying database patch (card columns, redeem codes, deposits)"
+bash "$APP_DIR/selfhost/patch-db.sh"
+
+if ! grep -q '^PLISIO_API_KEY=' "$APP_DIR/.env"; then
+  echo "!! PLISIO_API_KEY missing from $APP_DIR/.env — crypto deposits will fail."
+  echo "   Add it with:  printf 'PLISIO_API_KEY=YOUR_KEY\\n' >> $APP_DIR/.env"
+fi
+
 echo "==> 3/5 Installing deps + build"
+
 command -v bun >/dev/null || { curl -fsSL https://bun.sh/install | bash; export BUN_INSTALL="$HOME/.bun"; export PATH="$BUN_INSTALL/bin:$PATH"; }
 export PATH="$HOME/.bun/bin:$PATH"
 bun install
