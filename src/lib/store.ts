@@ -1,6 +1,30 @@
 import { supabase } from "@/integrations/supabase/client";
 
+/**
+ * The API caps every single response at 1000 rows (server-side `max-rows`),
+ * so `.limit(5000)` silently returned only the newest 1000 cards — which made
+ * uploads past 1000 look like they had failed and older cards look deleted.
+ * This helper pages through with `.range()` until every row is fetched.
+ */
+const PAGE_SIZE = 1000;
+
+export const fetchAllPages = async <T>(
+  build: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>,
+  hardCap = 100000,
+): Promise<T[]> => {
+  const out: T[] = [];
+  for (let from = 0; from < hardCap; from += PAGE_SIZE) {
+    const { data, error } = await build(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    const rows = data ?? [];
+    out.push(...rows);
+    if (rows.length < PAGE_SIZE) break;
+  }
+  return out;
+};
+
 export type DeliveryType = "key" | "download" | "instant";
+
 
 export interface Category {
   id: string;
@@ -115,16 +139,17 @@ export const listProducts = async (
   opts: { categoryId?: string | null; search?: string; includeInactive?: boolean; limit?: number } = {},
 ) => {
   const limit = Math.min(opts.limit ?? PRODUCT_FETCH_LIMIT, PRODUCT_FETCH_LIMIT);
-  let q = supabase
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (!opts.includeInactive) q = q.eq("active", true);
-  if (opts.categoryId) q = q.eq("category_id", opts.categoryId);
-  if (opts.search?.trim()) q = q.ilike("title", `%${opts.search.trim()}%`);
-  const { data, error } = await q;
-  if (error) throw error;
+  const data = await fetchAllPages<Record<string, unknown>>((from, to) => {
+    let q = supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    if (!opts.includeInactive) q = q.eq("active", true);
+    if (opts.categoryId) q = q.eq("category_id", opts.categoryId);
+    if (opts.search?.trim()) q = q.ilike("title", `%${opts.search.trim()}%`);
+    return q;
+  }, limit);
   return (data ?? []).map((p) => ({ ...p, price: num(p.price), compare_at_price: p.compare_at_price == null ? null : num(p.compare_at_price) })) as Product[];
 };
 
@@ -750,14 +775,16 @@ export interface StockBrand {
 
 /** Latest stock drops for the home page live feed. */
 export const listLatestStock = async (limit = 5): Promise<StockUpdate[]> => {
-  const { data, error } = await supabase
-    .from("products")
-    .select("id, base, base_date, created_at")
-    .eq("active", true)
-    .gt("stock", 0)
-    .order("created_at", { ascending: false })
-    .limit(1000);
-  if (error) throw error;
+  const data = await fetchAllPages<{ id: string; base: string | null; base_date: string | null; created_at: string }>(
+    (from, to) =>
+      supabase
+        .from("products")
+        .select("id, base, base_date, created_at")
+        .eq("active", true)
+        .gt("stock", 0)
+        .order("created_at", { ascending: false })
+        .range(from, to),
+  );
   const groups = new Map<string, StockUpdate>();
   for (const product of data ?? []) {
     const date = String(product.base_date ?? product.created_at.slice(0, 10));
@@ -773,13 +800,9 @@ export const listLatestStock = async (limit = 5): Promise<StockUpdate[]> => {
 };
 
 export const listStockBrands = async (): Promise<StockBrand[]> => {
-  const { data, error } = await supabase
-    .from("products")
-    .select("brand")
-    .eq("active", true)
-    .gt("stock", 0)
-    .limit(5000);
-  if (error) throw error;
+  const data = await fetchAllPages<{ brand: string | null }>((from, to) =>
+    supabase.from("products").select("brand").eq("active", true).gt("stock", 0).range(from, to),
+  );
   const counts = new Map<string, number>();
   for (const product of data ?? []) {
     const brand = (product.brand?.trim() || "Other").toUpperCase();
@@ -857,15 +880,20 @@ export const adminListCards = async (opts: {
   search?: string;
   status?: "all" | "available" | "sold" | "hidden" | "expired";
 } = {}): Promise<AdminCardRow[]> => {
-  let q = supabase
-    .from("products")
-    .select("id, bin, brand, country, price, active, stock, sold_count, exp_month, exp_year, created_at, category_id")
-    .order("created_at", { ascending: false })
-    .limit(5000);
-  const s = opts.search?.trim();
-  if (s) q = q.or(`bin.ilike.%${s}%,brand.ilike.%${s}%,country.ilike.%${s}%,title.ilike.%${s}%`);
-  const { data, error } = await q;
-  if (error) throw error;
+  const term = opts.search?.trim();
+  const data = await fetchAllPages<{
+    id: string; bin: string | null; brand: string | null; country: string | null; price: number | null;
+    active: boolean | null; stock: number | null; sold_count: number | null;
+    exp_month: string | null; exp_year: string | null; created_at: string; category_id: string | null;
+  }>((from, to) => {
+    let q = supabase
+      .from("products")
+      .select("id, bin, brand, country, price, active, stock, sold_count, exp_month, exp_year, created_at, category_id")
+      .order("created_at", { ascending: false })
+      .range(from, to);
+    if (term) q = q.or(`bin.ilike.%${term}%,brand.ilike.%${term}%,country.ilike.%${term}%,title.ilike.%${term}%`);
+    return q;
+  });
   const rows: AdminCardRow[] = (data ?? []).map((p) => ({
     id: p.id,
     bin: p.bin ?? "—",
@@ -932,13 +960,15 @@ export interface BaseGroup {
 /** Upload activity grouped by base date + base name (admin dashboard / export filters). */
 export const adminListBaseGroups = async (limitDays = 60): Promise<BaseGroup[]> => {
   const since = todayISO(-limitDays);
-  const { data, error } = await supabase
-    .from("products")
-    .select("base, base_date, stock, sold_count")
-    .gte("base_date", since)
-    .order("base_date", { ascending: false })
-    .limit(5000);
-  if (error) throw error;
+  const data = await fetchAllPages<{ base: string | null; base_date: string; stock: number | null; sold_count: number | null }>(
+    (from, to) =>
+      supabase
+        .from("products")
+        .select("base, base_date, stock, sold_count")
+        .gte("base_date", since)
+        .order("base_date", { ascending: false })
+        .range(from, to),
+  );
   const map = new Map<string, BaseGroup>();
   (data ?? []).forEach((p) => {
     const key = `${p.base_date}__${p.base ?? "—"}`;
@@ -980,16 +1010,23 @@ export interface ExportedCard {
  * calling this simply gets nothing back.
  */
 export const adminExportCards = async (f: ExportFilter): Promise<ExportedCard[]> => {
-  let q = supabase
-    .from("products")
-    .select("id, base, base_date, bin, brand, country, state, city, zip, exp_month, exp_year, price, product_keys(content, is_sold)")
-    .gte("base_date", f.from)
-    .lte("base_date", f.to)
-    .order("base_date", { ascending: false })
-    .limit(20000);
-  if (f.base) q = q.eq("base", f.base);
-  const { data, error } = await q;
-  if (error) throw error;
+  type ExportRow = {
+    base: string | null; base_date: string | null; bin: string | null; brand: string | null;
+    country: string | null; state: string | null; city: string | null; zip: string | null;
+    exp_month: string | null; exp_year: string | null; price: number | null;
+    product_keys: { content: string; is_sold: boolean }[] | null;
+  };
+  const data = await fetchAllPages<ExportRow>((from, to) => {
+    let q = supabase
+      .from("products")
+      .select("id, base, base_date, bin, brand, country, state, city, zip, exp_month, exp_year, price, product_keys(content, is_sold)")
+      .gte("base_date", f.from)
+      .lte("base_date", f.to)
+      .order("base_date", { ascending: false })
+      .range(from, to);
+    if (f.base) q = q.eq("base", f.base);
+    return q;
+  });
 
   const out: ExportedCard[] = [];
   (data ?? []).forEach((p) => {
