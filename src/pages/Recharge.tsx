@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { redeemCode, translateRedeemError } from "@/lib/store";
 import { QRCodeSVG } from "qrcode.react";
 import { calculateDepositFee } from "@/lib/fees";
+import { useServerFn } from "@tanstack/react-start";
 
 interface Deposit { id: string; amount: number; method: string; txid: string | null; status: string; created_at: string; crypto_currency?: string; plisio_wallet?: string; confirmations?: number; }
 interface Transaction { id: string; type: string; amount: number; note?: string; method?: string; ref_id?: string; meta?: string; created_at: string; }
@@ -41,6 +42,8 @@ const Recharge = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [redeemInput, setRedeemInput] = useState("");
   const [redeemBusy, setRedeemBusy] = useState(false);
+  const createCryptoInvoiceFn = useServerFn(createCryptoInvoice);
+  const checkDepositStatusFn = useServerFn(checkDepositStatus);
 
   const [activeInvoice, setActiveInvoiceRaw] = useState<{
     deposit_id: string; wallet_address: string; crypto_amount: string;
@@ -93,7 +96,7 @@ const Recharge = () => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
-        const s = await checkDepositStatus({ data: { deposit_id: depositId } });
+        const s = await checkDepositStatusFn({ data: { deposit_id: depositId } });
         setActiveInvoice(prev => prev ? { ...prev, status: s.status, confirmations: s.confirmations ?? 0 } : prev);
         if (s.status === "approved") {
           toast.success(`$${s.amount} credited to your balance!`);
@@ -110,7 +113,7 @@ const Recharge = () => {
       } catch { /* continue polling */ }
     }, 10_000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [checkDepositStatusFn, isActivation, navigate, setActiveInvoice]);
 
   useEffect(() => {
     loadHistory(); loadTransactions();
@@ -118,7 +121,7 @@ const Recharge = () => {
     if (activeInvoice?.deposit_id && activeInvoice.status === "pending") {
       // instant check when the user comes back from the payment page
       if (returned) {
-        checkDepositStatus({ data: { deposit_id: activeInvoice.deposit_id } })
+        checkDepositStatusFn({ data: { deposit_id: activeInvoice.deposit_id } })
           .then((s) => {
             if (s.status === "approved") {
               toast.success(`$${s.amount} credited to your balance!`);
@@ -184,7 +187,7 @@ const Recharge = () => {
     if (!amtNum || amtNum < MIN_DEPOSIT) return toast.error(`Minimum deposit is $${MIN_DEPOSIT}.`);
     setBusy(true);
     try {
-      const inv = await createCryptoInvoice({ data: { amount: amtNum } });
+      const inv = await createCryptoInvoiceFn({ data: { amount: amtNum } });
       setActiveInvoice({
         deposit_id: inv.deposit_id,
         wallet_address: inv.wallet_address || "",
