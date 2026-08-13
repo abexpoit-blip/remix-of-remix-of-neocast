@@ -14,12 +14,10 @@ import { DEFAULT_SETTINGS, refreshSiteSettings, SiteSettings } from "@/hooks/use
 
 const AdminPaymentGateway = () => {
   const [settings, setSettings] = useState<SiteSettings>(DEFAULT_SETTINGS);
-  const [plisioKey, setPlisioKey] = useState("");
   const [showKey, setShowKey] = useState(false);
   const [keyExists, setKeyExists] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savingKey, setSavingKey] = useState(false);
 
   useEffect(() => {
     document.title = "Admin · Payment Gateway";
@@ -60,12 +58,6 @@ const AdminPaymentGateway = () => {
       toast.error(e instanceof Error ? e.message : "Failed to save");
     } finally { setSaving(false); }
   };
-
-  const savePlisioKey = async () => {
-    toast.info("The Plisio API key is stored as a server secret and can only be changed from the project settings.");
-    setPlisioKey("");
-  };
-
 
   if (loading) {
     return (
