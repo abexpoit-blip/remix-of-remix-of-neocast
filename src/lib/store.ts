@@ -206,9 +206,10 @@ export const createDeposit = async (input: { amount: number; method: string; ref
 /* ---------------- admin ---------------- */
 
 export const adminListUsers = async (): Promise<AdminUserRow[]> => {
-  const [{ data: profiles, error: pErr }, { data: roles, error: rErr }] = await Promise.all([
+  const [{ data: profiles, error: pErr }, { data: roles, error: rErr }, { data: auth }] = await Promise.all([
     supabase.from("profiles").select("id, username, email, balance, blocked, created_at").order("created_at", { ascending: false }),
     supabase.from("user_roles").select("user_id, role"),
+    supabase.auth.getUser(),
   ]);
   if (pErr) throw pErr;
   if (rErr) throw rErr;
@@ -218,16 +219,21 @@ export const adminListUsers = async (): Promise<AdminUserRow[]> => {
     list.push(r.role as string);
     byUser.set(r.user_id, list);
   });
-  return (profiles ?? []).map((p) => ({
-    id: p.id,
-    username: p.username,
-    email: p.email,
-    balance: num(p.balance),
-    blocked: Boolean(p.blocked),
-    created_at: p.created_at,
-    roles: byUser.get(p.id) ?? [],
-  }));
+  const viewerId = auth?.user?.id ?? "";
+  const viewerIsSuper = (byUser.get(viewerId) ?? []).includes("superadmin");
+  return (profiles ?? [])
+    .filter((p) => viewerIsSuper || p.id === viewerId || !(byUser.get(p.id) ?? []).includes("superadmin"))
+    .map((p) => ({
+      id: p.id,
+      username: p.username,
+      email: p.email,
+      balance: num(p.balance),
+      blocked: Boolean(p.blocked),
+      created_at: p.created_at,
+      roles: byUser.get(p.id) ?? [],
+    }));
 };
+
 
 export const adminAdjustBalance = async (userId: string, amount: number, description: string) => {
   const { error } = await supabase.rpc("admin_adjust_balance", { _user_id: userId, _amount: amount, _description: description });
