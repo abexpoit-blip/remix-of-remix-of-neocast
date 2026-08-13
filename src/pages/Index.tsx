@@ -59,7 +59,7 @@ const Index = () => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [loadNews]);
 
-  const totalStock = news.reduce((s, n) => s + (Number(n.count) || 0), 0);
+  const totalStock = brands.reduce((s, item) => s + (Number(item.count) || 0), 0);
   const totalSpend = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
   const itemsBought = orders.reduce((s, o) => s + (o.order_items?.length ?? 0), 0);
   const lastOrder = orders[0];

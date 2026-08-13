@@ -52,6 +52,9 @@ ALTER TABLE public.products
   ADD COLUMN IF NOT EXISTS refundable boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS base_date date NOT NULL DEFAULT CURRENT_DATE;
 
+CREATE INDEX IF NOT EXISTS products_active_brand_base_date_idx
+  ON public.products (active, brand, base_date DESC);
+
 GRANT SELECT ON public.products TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.products TO authenticated;
 GRANT ALL ON public.products TO service_role;

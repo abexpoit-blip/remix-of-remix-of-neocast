@@ -8,9 +8,9 @@ const API = "https://api.plisio.net/api/v1";
 
 export interface NewInvoice {
   txn_id: string;
-  wallet_hash: string;
-  amount: string;
-  currency: string;
+  wallet_hash?: string;
+  amount?: string;
+  currency?: string;
   expire_utc?: number | string;
   invoice_url?: string;
   qr_code?: string;
@@ -29,7 +29,7 @@ async function call<T>(path: string, params: Record<string, string>): Promise<T>
   const res = await fetch(url.toString(), { headers: { accept: "application/json" } });
   const json = (await res.json()) as { status?: string; data?: unknown; message?: string };
   if (!res.ok || json.status !== "success" || !json.data) {
-    console.error("plisio error", res.status, json?.message);
+    console.error("plisio invoice request failed", res.status, json?.message ?? "unknown provider error");
     throw new Error("payment_gateway_error");
   }
   return json.data as T;

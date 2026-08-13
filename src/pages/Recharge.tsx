@@ -51,6 +51,7 @@ const Recharge = () => {
     confirmations: number; usd_amount: number; expires_ms: number;
     fee_amount?: number; charged_amount?: number;
     fee_mode?: "add" | "deduct"; fee_percent?: number;
+    invoice_url?: string;
   } | null>(() => {
 
     try {
@@ -201,6 +202,7 @@ const Recharge = () => {
         charged_amount: inv.charged_amount,
         fee_mode: inv.fee_mode,
         fee_percent: inv.fee_percent,
+        invoice_url: inv.invoice_url,
         expires_ms: inv.expires_ms || Date.now() + INVOICE_TTL_SEC * 1000,
 
       });
@@ -222,9 +224,9 @@ const Recharge = () => {
   };
 
   const qrValue = activeInvoice
-    ? (activeInvoice.crypto_amount
+    ? (activeInvoice.crypto_amount && activeInvoice.wallet_address
       ? `litecoin:${activeInvoice.qr_data || activeInvoice.wallet_address}?amount=${activeInvoice.crypto_amount}`
-      : (activeInvoice.qr_data || activeInvoice.wallet_address))
+      : (activeInvoice.invoice_url || activeInvoice.qr_data || activeInvoice.wallet_address))
     : "";
 
   const txnIcon = (type: string) => {
@@ -344,19 +346,19 @@ const Recharge = () => {
                   ) : null}
 
                 </div>
-                <div className={`flex justify-center ${isExpired ? "opacity-25 pointer-events-none" : ""}`}>
+                 {qrValue ? <div className={`flex justify-center ${isExpired ? "opacity-25 pointer-events-none" : ""}`}>
                   <div className="p-3 bg-white border border-[#e6e6e6]">
                     <QRCodeSVG value={qrValue} size={190} level="M" includeMargin={false} />
                   </div>
-                </div>
+                 </div> : null}
                 <p className="text-[11px] text-center text-[#888]">
-                  {isExpired ? "This QR code is no longer valid" : "Scan the QR in your LTC wallet"}
+                   {isExpired ? "This QR code is no longer valid" : activeInvoice.wallet_address ? "Scan the QR in your LTC wallet" : "Scan to open the secure payment invoice"}
                 </p>
               </div>
 
               {/* Details */}
               <div className="space-y-3">
-                <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
+                {activeInvoice.crypto_amount ? <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
                   <p className="text-[10px] uppercase tracking-wider text-[#888]">Send exactly</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="font-mono text-[16px] font-semibold text-[#1f2d3d] flex-1 break-all">
@@ -367,9 +369,9 @@ const Recharge = () => {
                       {copiedField === "amount" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                     </button>
                   </div>
-                </div>
+                </div> : null}
 
-                <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
+                {activeInvoice.wallet_address ? <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
                   <p className="text-[10px] uppercase tracking-wider text-[#888]">LTC payment address</p>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="text-[12px] text-[#333] break-all flex-1 font-mono leading-relaxed">
@@ -380,7 +382,18 @@ const Recharge = () => {
                       {copiedField === "address" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                     </button>
                   </div>
-                </div>
+                </div> : null}
+
+                {activeInvoice.invoice_url ? (
+                  <a
+                    href={activeInvoice.invoice_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full h-10 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] text-white text-[13px] inline-flex items-center justify-center"
+                  >
+                    Open secure payment invoice
+                  </a>
+                ) : null}
 
                 <div className="flex items-start gap-2 p-3 border border-[#ffe0a0] bg-[#fff8e1] text-[12px] text-[#b26a00]">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />

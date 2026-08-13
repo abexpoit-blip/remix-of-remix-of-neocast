@@ -71,8 +71,8 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       .from("deposits")
       .update({
         invoice_id: inv.txn_id,
-        wallet_address: inv.wallet_hash,
-        crypto_amount: String(inv.amount),
+        wallet_address: inv.wallet_hash ?? null,
+        crypto_amount: inv.amount ? String(inv.amount) : null,
         reference: inv.txn_id,
         invoice_url: inv.invoice_url ?? null,
         expires_at: expiresAt,
@@ -81,8 +81,9 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
 
     return {
       deposit_id: dep.id,
-      wallet_address: inv.wallet_hash,
-      crypto_amount: String(inv.amount),
+      wallet_address: inv.wallet_hash ?? "",
+      crypto_amount: inv.amount ? String(inv.amount) : "",
+      invoice_url: inv.invoice_url ?? "",
       currency: "LTC",
       usd_amount: credit,
       fee_percent: calculation.percent,
