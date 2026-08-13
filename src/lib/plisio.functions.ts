@@ -10,7 +10,7 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ amount: z.number().min(1).max(100000) }).parse(input))
   .handler(async ({ data, context }) => {
-    const { createLtcInvoice } = await import("@/lib/plisio.server");
+    const { createLtcInvoice, resolveInvoiceWallet } = await import("@/lib/plisio.server");
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
     const { data: feeRows, error: feeError } = await context.supabase
@@ -66,13 +66,21 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
       throw e;
     }
 
+    let walletAddress = inv.wallet_hash ?? "";
+    let cryptoAmount = inv.amount ? String(inv.amount) : "";
+    if (!walletAddress) {
+      const resolved = await resolveInvoiceWallet(inv.txn_id);
+      walletAddress = resolved.wallet_hash ?? "";
+      if (!cryptoAmount && resolved.amount) cryptoAmount = resolved.amount;
+    }
+
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
     await supabaseAdmin
       .from("deposits")
       .update({
         invoice_id: inv.txn_id,
-        wallet_address: inv.wallet_hash ?? null,
-        crypto_amount: inv.amount ? String(inv.amount) : null,
+        wallet_address: walletAddress || null,
+        crypto_amount: cryptoAmount || null,
         reference: inv.txn_id,
         invoice_url: inv.invoice_url ?? null,
         expires_at: expiresAt,
@@ -81,8 +89,8 @@ export const createCryptoInvoice = createServerFn({ method: "POST" })
 
     return {
       deposit_id: dep.id,
-      wallet_address: inv.wallet_hash ?? "",
-      crypto_amount: inv.amount ? String(inv.amount) : "",
+      wallet_address: walletAddress,
+      crypto_amount: cryptoAmount,
       invoice_url: inv.invoice_url ?? "",
       currency: "LTC",
       usd_amount: credit,
@@ -106,12 +114,18 @@ export const checkDepositStatus = createServerFn({ method: "POST" })
 
     const { data: dep } = await supabaseAdmin
       .from("deposits")
-      .select("id, user_id, amount, status, invoice_id, confirmations, expires_at")
+      .select("id, user_id, amount, status, invoice_id, confirmations, expires_at, wallet_address, crypto_amount")
       .eq("id", data.deposit_id)
       .maybeSingle();
     if (!dep || dep.user_id !== context.userId) throw new Error("not_found");
     if (dep.status !== "pending" || !dep.invoice_id) {
-      return { status: dep.status, confirmations: dep.confirmations ?? 0, amount: dep.amount };
+      return {
+        status: dep.status,
+        confirmations: dep.confirmations ?? 0,
+        amount: dep.amount,
+        wallet_address: dep.wallet_address ?? "",
+        crypto_amount: dep.crypto_amount ?? "",
+      };
     }
 
     let status: "approved" | "rejected" | "pending" = "pending";
@@ -119,6 +133,8 @@ export const checkDepositStatus = createServerFn({ method: "POST" })
     let confirmations = dep.confirmations ?? 0;
     let txUrl: string | null = null;
     let received: string | null = null;
+    let walletAddress = dep.wallet_address ?? "";
+    let cryptoAmount = dep.crypto_amount ?? "";
     try {
       const op = await getOperation(dep.invoice_id);
       rawStatus = (op.status || "").toLowerCase();
@@ -126,8 +142,16 @@ export const checkDepositStatus = createServerFn({ method: "POST" })
       confirmations = Number(op.confirmations ?? confirmations) || confirmations;
       txUrl = op.tx_url ?? null;
       received = op.amount ?? null;
+      if (!walletAddress && op.wallet_hash) walletAddress = op.wallet_hash;
+      if (!cryptoAmount) cryptoAmount = String(op.pending_amount ?? op.amount ?? op.invoice_total_sum ?? "") || "";
     } catch {
-      return { status: "pending" as const, confirmations, amount: dep.amount };
+      return {
+        status: "pending" as const,
+        confirmations,
+        amount: dep.amount,
+        wallet_address: walletAddress,
+        crypto_amount: cryptoAmount,
+      };
     }
 
     const expired = !!dep.expires_at && Date.parse(dep.expires_at) < Date.now();
@@ -139,6 +163,8 @@ export const checkDepositStatus = createServerFn({ method: "POST" })
         last_checked_at: new Date().toISOString(),
         tx_url: txUrl,
         received_amount: received,
+        ...(walletAddress && !dep.wallet_address ? { wallet_address: walletAddress } : {}),
+        ...(cryptoAmount && !dep.crypto_amount ? { crypto_amount: cryptoAmount } : {}),
         ...(rawStatus === "mismatch"
           ? { admin_note: `Payment mismatch — received ${received ?? "?"} LTC, manual review required` }
           : {}),
@@ -156,6 +182,8 @@ export const checkDepositStatus = createServerFn({ method: "POST" })
       status: ((settled as string) ?? status) as string,
       confirmations,
       amount: dep.amount,
+      wallet_address: walletAddress,
+      crypto_amount: cryptoAmount,
     };
   });
 

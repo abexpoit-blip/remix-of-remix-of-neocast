@@ -51,7 +51,6 @@ const Recharge = () => {
     confirmations: number; usd_amount: number; expires_ms: number;
     fee_amount?: number; charged_amount?: number;
     fee_mode?: "add" | "deduct"; fee_percent?: number;
-    invoice_url?: string;
   } | null>(() => {
 
     try {
@@ -98,7 +97,14 @@ const Recharge = () => {
     pollRef.current = setInterval(async () => {
       try {
         const s = await checkDepositStatusFn({ data: { deposit_id: depositId } });
-        setActiveInvoice(prev => prev ? { ...prev, status: s.status, confirmations: s.confirmations ?? 0 } : prev);
+        setActiveInvoice(prev => prev ? {
+          ...prev,
+          status: s.status,
+          confirmations: s.confirmations ?? 0,
+          wallet_address: prev.wallet_address || (s as { wallet_address?: string }).wallet_address || "",
+          qr_data: prev.qr_data || (s as { wallet_address?: string }).wallet_address || "",
+          crypto_amount: prev.crypto_amount || (s as { crypto_amount?: string }).crypto_amount || "",
+        } : prev);
         if (s.status === "approved") {
           toast.success(`$${s.amount} credited to your balance!`);
           setActiveInvoice(null);
@@ -202,7 +208,6 @@ const Recharge = () => {
         charged_amount: inv.charged_amount,
         fee_mode: inv.fee_mode,
         fee_percent: inv.fee_percent,
-        invoice_url: inv.invoice_url,
         expires_ms: inv.expires_ms || Date.now() + INVOICE_TTL_SEC * 1000,
 
       });
@@ -223,10 +228,11 @@ const Recharge = () => {
     } catch { toast.error("Copy failed — please copy manually"); }
   };
 
-  const qrValue = activeInvoice
-    ? (activeInvoice.crypto_amount && activeInvoice.wallet_address
-      ? `litecoin:${activeInvoice.qr_data || activeInvoice.wallet_address}?amount=${activeInvoice.crypto_amount}`
-      : (activeInvoice.invoice_url || activeInvoice.qr_data || activeInvoice.wallet_address))
+  const walletAddress = activeInvoice?.wallet_address || activeInvoice?.qr_data || "";
+  const qrValue = walletAddress
+    ? (activeInvoice?.crypto_amount
+      ? `litecoin:${walletAddress}?amount=${activeInvoice.crypto_amount}`
+      : `litecoin:${walletAddress}`)
     : "";
 
   const txnIcon = (type: string) => {
@@ -350,9 +356,16 @@ const Recharge = () => {
                   <div className="p-3 bg-white border border-[#e6e6e6]">
                     <QRCodeSVG value={qrValue} size={190} level="M" includeMargin={false} />
                   </div>
-                 </div> : null}
+                 </div> : (
+                  <div className="flex justify-center">
+                    <div className="p-3 bg-white border border-[#e6e6e6] h-[214px] w-[214px] flex flex-col items-center justify-center gap-2 text-[11px] text-[#888]">
+                      <Loader2 className="h-5 w-5 animate-spin text-[var(--nc-accent)]" />
+                      Preparing your LTC address…
+                    </div>
+                  </div>
+                )}
                 <p className="text-[11px] text-center text-[#888]">
-                   {isExpired ? "This QR code is no longer valid" : activeInvoice.wallet_address ? "Scan the QR in your LTC wallet" : "Scan to open the secure payment invoice"}
+                   {isExpired ? "This QR code is no longer valid" : walletAddress ? "Scan the QR in your LTC wallet" : "Address is being generated — keep this tab open"}
                 </p>
               </div>
 
@@ -371,29 +384,35 @@ const Recharge = () => {
                   </div>
                 </div> : null}
 
-                {activeInvoice.wallet_address ? <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
-                  <p className="text-[10px] uppercase tracking-wider text-[#888]">LTC payment address</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <code className="text-[12px] text-[#333] break-all flex-1 font-mono leading-relaxed">
-                      {activeInvoice.wallet_address}
-                    </code>
-                    <button onClick={() => copyField(activeInvoice.wallet_address, "address")} disabled={isExpired}
-                      className="shrink-0 h-8 w-8 border border-[#dcdcdc] bg-white hover:bg-[#fbf1f3] text-[var(--nc-accent)] flex items-center justify-center disabled:opacity-30">
-                      {copiedField === "address" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-                    </button>
+                <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
+                  <div className="flex items-center gap-2">
+                    <Wallet className="h-3.5 w-3.5 text-[var(--nc-accent)]" />
+                    <p className="text-[10px] uppercase tracking-wider text-[#888]">LTC wallet address</p>
                   </div>
-                </div> : null}
-
-                {activeInvoice.invoice_url ? (
-                  <a
-                    href={activeInvoice.invoice_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="w-full h-10 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] text-white text-[13px] inline-flex items-center justify-center"
-                  >
-                    Open secure payment invoice
-                  </a>
-                ) : null}
+                  {walletAddress ? (
+                    <>
+                      <div className="flex items-center gap-2 mt-2">
+                        <code className="text-[12px] text-[#333] break-all flex-1 font-mono leading-relaxed">
+                          {walletAddress}
+                        </code>
+                        <button onClick={() => copyField(walletAddress, "address")} disabled={isExpired}
+                          className="shrink-0 h-8 w-8 border border-[#dcdcdc] bg-white hover:bg-[#fbf1f3] text-[var(--nc-accent)] flex items-center justify-center disabled:opacity-30">
+                          {copiedField === "address" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                      </div>
+                      <button onClick={() => copyField(walletAddress, "address")} disabled={isExpired}
+                        className="mt-2 w-full h-9 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] text-white text-[12px] inline-flex items-center justify-center gap-2 disabled:opacity-40">
+                        {copiedField === "address" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                        {copiedField === "address" ? "Address copied" : "Copy wallet address"}
+                      </button>
+                    </>
+                  ) : (
+                    <p className="mt-2 text-[12px] text-[#888] inline-flex items-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-[var(--nc-accent)]" />
+                      Generating address…
+                    </p>
+                  )}
+                </div>
 
                 <div className="flex items-start gap-2 p-3 border border-[#ffe0a0] bg-[#fff8e1] text-[12px] text-[#b26a00]">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
