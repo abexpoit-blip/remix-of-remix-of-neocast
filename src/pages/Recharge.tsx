@@ -47,7 +47,7 @@ const Recharge = () => {
 
   const [activeInvoice, setActiveInvoiceRaw] = useState<{
     deposit_id: string; wallet_address: string; crypto_amount: string;
-    currency: string; qr_data: string; status: string;
+    currency: string; qr_data: string; status: string; invoice_url?: string;
     confirmations: number; usd_amount: number; expires_ms: number;
     fee_amount?: number; charged_amount?: number;
     fee_mode?: "add" | "deduct"; fee_percent?: number;
@@ -201,6 +201,7 @@ const Recharge = () => {
         crypto_amount: inv.crypto_amount,
         currency: "LTC",
         qr_data: inv.wallet_address || "",
+        invoice_url: inv.invoice_url || "",
         status: "pending",
         confirmations: 0,
         usd_amount: inv.usd_amount ?? amtNum,
@@ -365,7 +366,7 @@ const Recharge = () => {
                   </div>
                 )}
                 <p className="text-[11px] text-center text-[#888]">
-                   {isExpired ? "This QR code is no longer valid" : walletAddress ? "Scan the QR in your LTC wallet" : "Address is being generated — keep this tab open"}
+                   {isExpired ? "This QR code is no longer valid" : walletAddress ? "Scan the QR in your LTC wallet" : activeInvoice.invoice_url ? "Get your LTC address from the checkout page" : "Address is being generated — keep this tab open"}
                 </p>
               </div>
 
@@ -405,6 +406,22 @@ const Recharge = () => {
                         {copiedField === "address" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                         {copiedField === "address" ? "Address copied" : "Copy wallet address"}
                       </button>
+                    </>
+                  ) : activeInvoice.invoice_url ? (
+                    <>
+                      <p className="mt-2 text-[12px] text-[#666] leading-relaxed">
+                        Your unique LTC address for this invoice is issued on the secure checkout page.
+                        Open it, copy the address there, and pay — this page keeps tracking your payment.
+                      </p>
+                      <a
+                        href={activeInvoice.invoice_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`mt-2 w-full h-9 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] text-white text-[12px] inline-flex items-center justify-center gap-2 ${isExpired ? "pointer-events-none opacity-40" : ""}`}
+                      >
+                        <Wallet className="h-3.5 w-3.5" />
+                        Get LTC address
+                      </a>
                     </>
                   ) : (
                     <p className="mt-2 text-[12px] text-[#888] inline-flex items-center gap-2">

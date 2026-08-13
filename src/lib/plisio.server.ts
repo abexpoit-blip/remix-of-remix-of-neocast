@@ -72,7 +72,7 @@ export async function createLtcInvoice(input: {
  */
 export async function resolveInvoiceWallet(
   txnId: string,
-  attempts = 3,
+  attempts = 5,
 ): Promise<{ wallet_hash?: string; amount?: string; invoice_url?: string }> {
   for (let i = 0; i < attempts; i += 1) {
     try {
@@ -82,7 +82,7 @@ export async function resolveInvoiceWallet(
     } catch (e) {
       console.error("plisio operation lookup failed", (e as Error).message);
     }
-    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 1200));
+    if (i < attempts - 1) await new Promise((r) => setTimeout(r, 1500));
   }
   return {};
 }
@@ -133,4 +133,18 @@ export function verifyCallback(fields: Record<string, string>): boolean {
   const a = Buffer.from(received);
   const b = Buffer.from(expected);
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/**
+ * Merchant shop configuration. `white_label: false` means the provider never
+ * returns an on-chain wallet address through the API, so the buyer has to be
+ * sent to the provider-hosted checkout page instead.
+ */
+export async function getShopConfig(): Promise<{ white_label?: boolean }> {
+  try {
+    return await call<{ white_label?: boolean }>("/shops", {});
+  } catch (e) {
+    console.error("plisio shop lookup failed", (e as Error).message);
+    return {};
+  }
 }
