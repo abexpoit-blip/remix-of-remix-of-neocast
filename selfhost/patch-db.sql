@@ -52,6 +52,9 @@ ALTER TABLE public.products
   ADD COLUMN IF NOT EXISTS refundable boolean NOT NULL DEFAULT false,
   ADD COLUMN IF NOT EXISTS base_date date NOT NULL DEFAULT CURRENT_DATE;
 
+CREATE INDEX IF NOT EXISTS products_active_brand_base_date_idx
+  ON public.products (active, brand, base_date DESC);
+
 GRANT SELECT ON public.products TO anon;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.products TO authenticated;
 GRANT ALL ON public.products TO service_role;
@@ -220,7 +223,10 @@ GRANT EXECUTE ON FUNCTION public.expire_stale_deposits() TO service_role;
 /* ---------- support links ---------- */
 INSERT INTO public.site_settings (key, value) VALUES
   ('support_telegram', '@neocastofficial'),
-  ('support_telegram_channel', 'https://t.me/neocastcc')
+  ('support_telegram_channel', 'https://t.me/neocastcc'),
+  ('deposit_fee_percent', '0'),
+  ('deposit_fee_flat', '0'),
+  ('deposit_fee_mode', 'add')
 ON CONFLICT (key) DO NOTHING;
 
 COMMIT;

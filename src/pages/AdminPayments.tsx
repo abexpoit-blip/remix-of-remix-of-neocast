@@ -13,17 +13,20 @@ interface Deposit {
   id: string;
   user_id: string;
   user_email?: string;
-  user_username?: string;
+  username?: string;
   amount: number;
   method: string;
   status: string;
   crypto_currency?: string;
   crypto_amount?: number;
-  plisio_invoice_id?: string;
+  invoice_id?: string;
   plisio_wallet?: string;
   txid?: string;
   confirmations?: number;
-  admin_notes?: string;
+  admin_note?: string;
+  fee_percent?: number;
+  fee_amount?: number;
+  charged_amount?: number;
   created_at: string;
   reviewed_at?: string;
 }
@@ -57,7 +60,7 @@ const AdminPayments = () => {
       setDeposits(rows.filter(d => {
         if (filter !== "all" && d.status !== filter) return false;
         if (!needle) return true;
-        return [d.user_username, d.user_email, d.txid, d.id].some(v => (v ?? "").toLowerCase().includes(needle));
+        return [d.username, d.user_email, d.txid, d.invoice_id, d.id].some(v => (v ?? "").toLowerCase().includes(needle));
       }));
     } catch {
       toast.error("Failed to load deposits");
@@ -193,7 +196,7 @@ const AdminPayments = () => {
                       <td className="p-3 pl-5">
                         <div>
                           <p className="font-medium text-foreground truncate max-w-[140px]">
-                            {d.user_username || "—"}
+                            {d.username || "—"}
                           </p>
                           <p className="text-[10px] text-muted-foreground truncate max-w-[140px]">
                             {d.user_email || d.user_id.slice(0, 12) + "…"}
@@ -204,6 +207,11 @@ const AdminPayments = () => {
                         <span className="font-display font-bold text-foreground">
                           ${Number(d.amount).toFixed(2)}
                         </span>
+                        {Number(d.fee_amount ?? 0) > 0 && (
+                          <p className="text-[10px] text-muted-foreground">
+                            paid ${Number(d.charged_amount ?? d.amount).toFixed(2)} · fee ${Number(d.fee_amount).toFixed(2)}
+                          </p>
+                        )}
                         {d.crypto_amount && d.crypto_currency && (
                           <p className="text-[10px] text-muted-foreground">
                             {d.crypto_amount} {d.crypto_currency}
@@ -223,9 +231,9 @@ const AdminPayments = () => {
                       </td>
                       <td className="p-3">
                         <div className="space-y-0.5">
-                          {d.plisio_invoice_id && (
-                            <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]" title={d.plisio_invoice_id}>
-                              inv: {d.plisio_invoice_id.slice(0, 14)}…
+                          {d.invoice_id && (
+                            <p className="text-[10px] text-muted-foreground font-mono truncate max-w-[120px]" title={d.invoice_id}>
+                              inv: {d.invoice_id.slice(0, 14)}…
                             </p>
                           )}
                           {d.txid && (
@@ -233,7 +241,7 @@ const AdminPayments = () => {
                               tx: {d.txid.slice(0, 14)}…
                             </p>
                           )}
-                          {!d.plisio_invoice_id && !d.txid && (
+                          {!d.invoice_id && !d.txid && (
                             <span className="text-[10px] text-muted-foreground">—</span>
                           )}
                         </div>
@@ -271,7 +279,7 @@ const AdminPayments = () => {
                           </div>
                         ) : (
                           <span className="text-[10px] text-muted-foreground">
-                            {d.admin_notes ? d.admin_notes.slice(0, 30) + (d.admin_notes.length > 30 ? "…" : "") : "—"}
+                            {d.admin_note ? d.admin_note.slice(0, 30) + (d.admin_note.length > 30 ? "…" : "") : "—"}
                           </span>
                         )}
                       </td>

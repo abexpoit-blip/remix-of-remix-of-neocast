@@ -64,6 +64,9 @@ const AdminCards = () => {
       else cards.forEach((c) => n.add(c.id));
       return n;
     });
+  const allFilteredSelected = allCards.length > 0 && allCards.every((c) => selected.has(c.id));
+  const toggleAllFiltered = () =>
+    setSelected(allFilteredSelected ? new Set() : new Set(allCards.map((c) => c.id)));
 
   const bulkDelete = async () => {
     const ids = Array.from(selected);
@@ -158,6 +161,15 @@ const AdminCards = () => {
             ))}
           </div>
         </div>
+
+        {totalCards > cards.length && (
+          <div className="mb-3 flex items-center justify-between gap-3 border border-border/40 bg-secondary/20 px-3 py-2 text-xs">
+            <span className="text-muted-foreground">Page selection covers 25 cards.</span>
+            <Button size="sm" variant="outline" onClick={toggleAllFiltered}>
+              {allFilteredSelected ? "Clear all filtered" : `Select all ${totalCards.toLocaleString()} filtered cards`}
+            </Button>
+          </div>
+        )}
 
         {selected.size > 0 && (
           <div className="mb-3 p-3 rounded-xl bg-primary/10 border border-primary/40 flex items-center gap-2 flex-wrap">

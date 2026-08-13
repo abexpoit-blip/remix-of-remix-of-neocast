@@ -12,6 +12,8 @@ import {
 import { toast } from "sonner";
 import { redeemCode, translateRedeemError } from "@/lib/store";
 import { QRCodeSVG } from "qrcode.react";
+import { calculateDepositFee } from "@/lib/fees";
+import { useServerFn } from "@tanstack/react-start";
 
 interface Deposit { id: string; amount: number; method: string; txid: string | null; status: string; created_at: string; crypto_currency?: string; plisio_wallet?: string; confirmations?: number; }
 interface Transaction { id: string; type: string; amount: number; note?: string; method?: string; ref_id?: string; meta?: string; created_at: string; }
@@ -40,12 +42,16 @@ const Recharge = () => {
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [redeemInput, setRedeemInput] = useState("");
   const [redeemBusy, setRedeemBusy] = useState(false);
+  const createCryptoInvoiceFn = useServerFn(createCryptoInvoice);
+  const checkDepositStatusFn = useServerFn(checkDepositStatus);
 
   const [activeInvoice, setActiveInvoiceRaw] = useState<{
     deposit_id: string; wallet_address: string; crypto_amount: string;
     currency: string; qr_data: string; status: string;
     confirmations: number; usd_amount: number; expires_ms: number;
     fee_amount?: number; charged_amount?: number;
+    fee_mode?: "add" | "deduct"; fee_percent?: number;
+    invoice_url?: string;
   } | null>(() => {
 
     try {
@@ -91,7 +97,7 @@ const Recharge = () => {
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
       try {
-        const s = await checkDepositStatus({ data: { deposit_id: depositId } });
+        const s = await checkDepositStatusFn({ data: { deposit_id: depositId } });
         setActiveInvoice(prev => prev ? { ...prev, status: s.status, confirmations: s.confirmations ?? 0 } : prev);
         if (s.status === "approved") {
           toast.success(`$${s.amount} credited to your balance!`);
@@ -108,7 +114,7 @@ const Recharge = () => {
       } catch { /* continue polling */ }
     }, 10_000);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [checkDepositStatusFn, isActivation, navigate, setActiveInvoice]);
 
   useEffect(() => {
     loadHistory(); loadTransactions();
@@ -116,7 +122,7 @@ const Recharge = () => {
     if (activeInvoice?.deposit_id && activeInvoice.status === "pending") {
       // instant check when the user comes back from the payment page
       if (returned) {
-        checkDepositStatus({ data: { deposit_id: activeInvoice.deposit_id } })
+        checkDepositStatusFn({ data: { deposit_id: activeInvoice.deposit_id } })
           .then((s) => {
             if (s.status === "approved") {
               toast.success(`$${s.amount} credited to your balance!`);
@@ -171,12 +177,18 @@ const Recharge = () => {
   const isExpired = !!activeInvoice && countdown === 0;
   const MIN_DEPOSIT = Math.max(20, settings.min_deposit || 20);
   const amtNum = Number(amount) || 0;
+  const feePreview = calculateDepositFee(
+    amtNum,
+    settings.deposit_fee_percent,
+    settings.deposit_fee_flat,
+    settings.deposit_fee_mode,
+  );
 
   const createInvoice = async () => {
     if (!amtNum || amtNum < MIN_DEPOSIT) return toast.error(`Minimum deposit is $${MIN_DEPOSIT}.`);
     setBusy(true);
     try {
-      const inv = await createCryptoInvoice({ data: { amount: amtNum } });
+      const inv = await createCryptoInvoiceFn({ data: { amount: amtNum } });
       setActiveInvoice({
         deposit_id: inv.deposit_id,
         wallet_address: inv.wallet_address || "",
@@ -188,6 +200,9 @@ const Recharge = () => {
         usd_amount: inv.usd_amount ?? amtNum,
         fee_amount: inv.fee_amount,
         charged_amount: inv.charged_amount,
+        fee_mode: inv.fee_mode,
+        fee_percent: inv.fee_percent,
+        invoice_url: inv.invoice_url,
         expires_ms: inv.expires_ms || Date.now() + INVOICE_TTL_SEC * 1000,
 
       });
@@ -209,9 +224,9 @@ const Recharge = () => {
   };
 
   const qrValue = activeInvoice
-    ? (activeInvoice.crypto_amount
+    ? (activeInvoice.crypto_amount && activeInvoice.wallet_address
       ? `litecoin:${activeInvoice.qr_data || activeInvoice.wallet_address}?amount=${activeInvoice.crypto_amount}`
-      : (activeInvoice.qr_data || activeInvoice.wallet_address))
+      : (activeInvoice.invoice_url || activeInvoice.qr_data || activeInvoice.wallet_address))
     : "";
 
   const txnIcon = (type: string) => {
@@ -324,26 +339,26 @@ const Recharge = () => {
                 <div className="text-center border border-[#e6e6e6] bg-[#fafafa] p-3">
                   <p className="text-[11px] uppercase tracking-wider text-[#888]">Deposit amount</p>
                   <p className="text-[24px] font-semibold text-[var(--nc-accent)] font-mono">${activeInvoice.usd_amount.toFixed(2)}</p>
-                  {activeInvoice.charged_amount ? (
+                  {activeInvoice.fee_amount ? (
                     <p className="text-[11px] text-[#888] font-mono">
-                      charge ${activeInvoice.charged_amount.toFixed(2)} (2% fee)
+                      pay ${activeInvoice.charged_amount?.toFixed(2)} · fee ${activeInvoice.fee_amount.toFixed(2)}
                     </p>
                   ) : null}
 
                 </div>
-                <div className={`flex justify-center ${isExpired ? "opacity-25 pointer-events-none" : ""}`}>
+                 {qrValue ? <div className={`flex justify-center ${isExpired ? "opacity-25 pointer-events-none" : ""}`}>
                   <div className="p-3 bg-white border border-[#e6e6e6]">
                     <QRCodeSVG value={qrValue} size={190} level="M" includeMargin={false} />
                   </div>
-                </div>
+                 </div> : null}
                 <p className="text-[11px] text-center text-[#888]">
-                  {isExpired ? "This QR code is no longer valid" : "Scan the QR in your LTC wallet"}
+                   {isExpired ? "This QR code is no longer valid" : activeInvoice.wallet_address ? "Scan the QR in your LTC wallet" : "Scan to open the secure payment invoice"}
                 </p>
               </div>
 
               {/* Details */}
               <div className="space-y-3">
-                <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
+                {activeInvoice.crypto_amount ? <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
                   <p className="text-[10px] uppercase tracking-wider text-[#888]">Send exactly</p>
                   <div className="flex items-center gap-2 mt-1">
                     <span className="font-mono text-[16px] font-semibold text-[#1f2d3d] flex-1 break-all">
@@ -354,9 +369,9 @@ const Recharge = () => {
                       {copiedField === "amount" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                     </button>
                   </div>
-                </div>
+                </div> : null}
 
-                <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
+                {activeInvoice.wallet_address ? <div className={`border border-[#e6e6e6] bg-[#fafafa] p-3 ${isExpired ? "opacity-40" : ""}`}>
                   <p className="text-[10px] uppercase tracking-wider text-[#888]">LTC payment address</p>
                   <div className="flex items-center gap-2 mt-1">
                     <code className="text-[12px] text-[#333] break-all flex-1 font-mono leading-relaxed">
@@ -367,7 +382,18 @@ const Recharge = () => {
                       {copiedField === "address" ? <CheckCircle2 className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                     </button>
                   </div>
-                </div>
+                </div> : null}
+
+                {activeInvoice.invoice_url ? (
+                  <a
+                    href={activeInvoice.invoice_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-full h-10 bg-[var(--nc-accent)] hover:bg-[var(--nc-accent-hi)] text-white text-[13px] inline-flex items-center justify-center"
+                  >
+                    Open secure payment invoice
+                  </a>
+                ) : null}
 
                 <div className="flex items-start gap-2 p-3 border border-[#ffe0a0] bg-[#fff8e1] text-[12px] text-[#b26a00]">
                   <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -463,21 +489,21 @@ const Recharge = () => {
 
                 <div className="text-[12px] text-[#666] mt-4 pt-4 border-t border-[#eee] space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <span>Network fee (2%)</span>
-                    <span className="font-mono text-[#1f2d3d]">${(amtNum * 0.02).toFixed(2)}</span>
+                    <span>Deposit fee ({feePreview.percent}%{feePreview.flat > 0 ? ` + $${feePreview.flat.toFixed(2)}` : ""})</span>
+                    <span className="font-mono text-[#1f2d3d]">${feePreview.fee.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Total to pay</span>
-                    <span className="font-mono font-semibold text-[var(--nc-accent)]">${(amtNum * 1.02).toFixed(2)}</span>
+                    <span className="font-mono font-semibold text-[var(--nc-accent)]">${feePreview.charged.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between border-t border-[#eee] pt-1.5 mt-1.5">
                     <span className="font-semibold text-[#1f2d3d]">Added to balance (after fee)</span>
-                    <span className="font-mono font-semibold text-[#2e7d32]">+${amtNum.toFixed(2)}</span>
+                    <span className="font-mono font-semibold text-[#2e7d32]">+${feePreview.credit.toFixed(2)}</span>
                   </div>
                   <div className="flex items-center justify-between">
                     <span>Balance after deposit</span>
                     <span className="font-mono font-semibold text-[#1f2d3d]">
-                      ${(Number(profile?.balance ?? 0) + amtNum).toFixed(2)}
+                      ${(Number(profile?.balance ?? 0) + feePreview.credit).toFixed(2)}
                     </span>
                   </div>
                   <div className="flex items-center justify-between">

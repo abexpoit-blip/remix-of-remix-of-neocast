@@ -38,7 +38,7 @@ export const Route = createFileRoute("/api/public/deposit-callback")({
 
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-        await supabaseAdmin
+        const { error: updateError } = await supabaseAdmin
           .from("deposits")
           .update({
             last_checked_at: new Date().toISOString(),
@@ -49,13 +49,21 @@ export const Route = createFileRoute("/api/public/deposit-callback")({
               : {}),
           })
           .eq("invoice_id", invoiceId);
+        if (updateError) {
+          console.error("deposit callback update failed", updateError.message);
+          return new Response("Temporary error", { status: 500 });
+        }
 
-        await supabaseAdmin.rpc("settle_crypto_deposit", {
+        const { error: settleError } = await supabaseAdmin.rpc("settle_crypto_deposit", {
           _invoice_id: invoiceId,
           _status: status,
           _confirmations: confirmations,
           _txid: fields.tx_url || undefined,
         });
+        if (settleError) {
+          console.error("deposit callback settlement failed", settleError.message);
+          return new Response("Temporary error", { status: 500 });
+        }
 
         return new Response("ok");
       },

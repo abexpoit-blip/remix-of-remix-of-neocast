@@ -70,6 +70,10 @@ if ! grep -q '^PLISIO_API_KEY=' "$APP_DIR/.env"; then
   echo "!! PLISIO_API_KEY missing from $APP_DIR/.env — crypto deposits will fail."
   echo "   Add it with:  printf 'PLISIO_API_KEY=YOUR_KEY\\n' >> $APP_DIR/.env"
 fi
+if grep -q '^PLISIO_API_KEY=$' "$APP_DIR/.env"; then
+  echo "!! PLISIO_API_KEY is empty in $APP_DIR/.env — crypto deposits will fail."
+  exit 1
+fi
 
 echo "==> 3/5 Installing deps + build"
 
@@ -132,6 +136,9 @@ if pm2 logs "$PM2_NAME" --lines 60 --nostream 2>/dev/null | grep -q 'Missing Sup
   exit 1
 fi
 echo "    Supabase env OK"
+if grep -q '^PLISIO_API_KEY=.' "$APP_DIR/.env"; then
+  echo "    Payment gateway env OK"
+fi
 
 
 

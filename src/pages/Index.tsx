@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { listLatestStock, listAnnouncements, listMyOrders, type StockUpdate, type Announcement, type Order } from "@/lib/store";
+import { listLatestStock, listStockBrands, listAnnouncements, listMyOrders, type StockUpdate, type StockBrand, type Announcement, type Order } from "@/lib/store";
 import { AnnouncementNoticeGrid } from "@/components/shop/AnnouncementNoticeGrid";
 import { AppShell } from "@/components/AppShell";
 import Seo from "@/components/Seo";
@@ -25,6 +25,7 @@ const Index = () => {
   const { profile } = useAuth();
   const site = useSiteSettings();
   const [news, setNews] = useState<StockUpdate[]>([]);
+  const [brands, setBrands] = useState<StockBrand[]>([]);
   const [anns, setAnns] = useState<Announcement[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +34,9 @@ const Index = () => {
 
   const loadNews = useCallback(async () => {
     try {
-      const rows = await listLatestStock(LIVE_STOCK_LIMIT);
+      const [rows, brandRows] = await Promise.all([listLatestStock(LIVE_STOCK_LIMIT), listStockBrands()]);
       setNews(rows);
+      setBrands(brandRows);
       setUpdatedAt(new Date());
     } catch { /* ignore */ }
   }, []);
@@ -57,12 +59,11 @@ const Index = () => {
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [loadNews]);
 
-  const totalStock = news.reduce((s, n) => s + (Number(n.count) || 0), 0);
+  const totalStock = brands.reduce((s, item) => s + (Number(item.count) || 0), 0);
   const totalSpend = orders.reduce((s, o) => s + (Number(o.total) || 0), 0);
   const itemsBought = orders.reduce((s, o) => s + (o.order_items?.length ?? 0), 0);
   const lastOrder = orders[0];
-  const topFeeds = [...news].sort((a, b) => (Number(b.count) || 0) - (Number(a.count) || 0)).slice(0, 5);
-  const peakFeed = topFeeds[0]?.count ? Number(topFeeds[0].count) : 1;
+  const peakBrand = brands[0]?.count ? Number(brands[0].count) : 1;
 
 
   return (
@@ -127,17 +128,17 @@ const Index = () => {
 
         <Panel title="Top stock categories" icon={<TrendingUp className="h-4 w-4" />}>
           <div className="px-5 py-4 space-y-3">
-            {topFeeds.length === 0 && <div className="text-[13px] text-[#888] py-4 text-center">No stock data yet.</div>}
-            {topFeeds.map((f) => (
-              <div key={f.id}>
+            {brands.length === 0 && <div className="text-[13px] text-[#888] py-4 text-center">No stock data yet.</div>}
+            {brands.slice(0, 5).map((f) => (
+              <div key={f.brand}>
                 <div className="flex items-center justify-between text-[12.5px] mb-1">
-                  <span className="text-[#333] truncate pr-2 font-medium">{f.label}</span>
+                  <span className="text-[#333] truncate pr-2 font-medium">{f.brand}</span>
                   <span className="tabular-nums text-[#777]">{f.count}</span>
                 </div>
                 <div className="h-1.5 rounded-full bg-[#f0f0f0] overflow-hidden">
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-[var(--nc-accent)] to-[var(--nc-accent-soft)] transition-all duration-700"
-                    style={{ width: `${Math.max(6, ((Number(f.count) || 0) / peakFeed) * 100)}%` }}
+                    style={{ width: `${Math.max(6, ((Number(f.count) || 0) / peakBrand) * 100)}%` }}
                   />
                 </div>
               </div>
