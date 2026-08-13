@@ -311,14 +311,12 @@ export const adminListOrders = async (): Promise<(Order & { username?: string })
 };
 
 export const adminStats = async () => {
-  const [users, products, orderRows, depositRows, pendingDeposits] = await Promise.all([
+  const [users, products, orderRows, pendingDeposits] = await Promise.all([
     countRows(() => supabase.from("profiles").select("id", { count: "exact", head: true })),
     countRows(() => supabase.from("products").select("id", { count: "exact", head: true })),
     fetchAllPages<{ total: number | string }>((from, to) => supabase.from("orders").select("total").range(from, to)),
-    fetchAllPages<{ amount: number | string; status: string }>((from, to) => supabase.from("deposits").select("amount, status").range(from, to)),
     countRows(() => supabase.from("deposits").select("id", { count: "exact", head: true }).eq("status", "pending")),
   ]);
-  void depositRows;
   const revenue = orderRows.reduce((s2, o) => s2 + num(o.total), 0);
   return {
     users,
@@ -482,7 +480,7 @@ const chunk = <T,>(arr: T[], size: number): T[][] => {
   return out;
 };
 
-const CHUNK = 200;
+const CHUNK = 500;
 
 /** Retries a chunk on transient network / timeout failures so a big upload never dies half-way silently. */
 const withRetry = async <T,>(fn: () => Promise<T>, attempts = 3): Promise<T> => {
