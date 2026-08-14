@@ -140,8 +140,11 @@ export const listCategories = async (includeInactive = false): Promise<Category[
   return (data ?? []) as Category[];
 };
 
-/** Hard cap so a huge stock table can never freeze the browser / blow up the response. */
-export const PRODUCT_FETCH_LIMIT = 3000;
+/**
+ * Safety cap only — every uploaded card must be visible/searchable in the shop,
+ * so this is set far above realistic inventory instead of the old 3000 limit.
+ */
+export const PRODUCT_FETCH_LIMIT = 200000;
 
 export const listProducts = async (
   opts: { categoryId?: string | null; search?: string; includeInactive?: boolean; limit?: number } = {},
